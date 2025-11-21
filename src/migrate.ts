@@ -4,6 +4,9 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import { sql_queries, sql_sets } from './sql-parse';
 
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { version } = require('../package.json');
+
 const log = (type: 'info' | 'error' = 'info', message: string, error?: string) => {
   if (type === 'info') {
     console.log('\x1b[36m', `clickhouse-migrations :`, '\x1b[0m', message);
@@ -385,7 +388,7 @@ const migration = async (
 const migrate = () => {
   const program = new Command();
 
-  program.name('clickhouse-migrations').description('ClickHouse migrations.').version('1.1.3');
+  program.name('clickhouse-migrations').description('ClickHouse migrations.').version(version);
 
   program
     .command('migrate')
