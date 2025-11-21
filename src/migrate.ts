@@ -83,6 +83,21 @@ const create_db = async (
     process.exit(1);
   }
 
+  // Validate db_name parameter to prevent SQL injection
+  // Documentation: https://clickhouse.com/docs/en/sql-reference/syntax#identifiers
+  // Valid database names: letters, numbers, underscores, max 255 chars, can't start with number
+  // Examples: mydb, my_database, analytics_db
+  if (db_name) {
+    const validDbNamePattern = /^[a-zA-Z_][a-zA-Z0-9_]{0,254}$/;
+    if (!validDbNamePattern.test(db_name.trim())) {
+      log(
+        'error',
+        `Invalid database name. Must start with a letter or underscore, contain only letters, numbers, and underscores, and be max 255 characters. See: https://clickhouse.com/docs/en/sql-reference/syntax#identifiers`,
+      );
+      process.exit(1);
+    }
+  }
+
   // In open source ClickHouse - default DB engine is "Atomic", for Cloud - "Shared". If not set, appropriate default is used.
   // Validate db_engine parameter to prevent SQL injection
   // Documentation: https://clickhouse.com/docs/en/sql-reference/statements/create/database
@@ -107,8 +122,8 @@ const create_db = async (
   }
 
   const q = db_engine
-    ? `CREATE DATABASE IF NOT EXISTS "${db_name}" ${db_engine}`
-    : `CREATE DATABASE IF NOT EXISTS "${db_name}"`;
+    ? `CREATE DATABASE IF NOT EXISTS \`${db_name}\` ${db_engine}`
+    : `CREATE DATABASE IF NOT EXISTS \`${db_name}\``;
 
   try {
     await client.exec({
@@ -126,6 +141,28 @@ const create_db = async (
 };
 
 const init_migration_table = async (client: ClickHouseClient, table_engine: string = 'MergeTree'): Promise<void> => {
+  // Validate table_engine parameter to prevent SQL injection
+  // Documentation: https://clickhouse.com/docs/en/engines/table-engines/
+  // Valid engines: MergeTree, ReplicatedMergeTree, ReplacingMergeTree, SummingMergeTree, etc.
+  // Valid format: EngineName or EngineName('param1', 'param2')
+  // Examples:
+  //   - MergeTree
+  //   - ReplicatedMergeTree('/clickhouse/tables/{database}/migrations', '{replica}')
+  //   - ReplacingMergeTree(version_column)
+  if (table_engine) {
+    // Allow: engine name with optional parameters in parentheses, including cluster macros
+    // Pattern: word characters followed by optional parentheses with parameters
+    // Allowed characters inside params: alphanumeric, underscore, slash, dot, dash, braces, comma, single quotes, spaces
+    const validEnginePattern = /^[\w]+(\([\w\s/._{}',-]*\))?$/;
+    if (!validEnginePattern.test(table_engine.trim())) {
+      log(
+        'error',
+        `Invalid table-engine parameter. Must be a valid ClickHouse engine name, optionally with parameters in parentheses. Examples: MergeTree, ReplicatedMergeTree('/path', '{replica}'). See: https://clickhouse.com/docs/en/engines/table-engines/`,
+      );
+      process.exit(1);
+    }
+  }
+
   const q = `CREATE TABLE IF NOT EXISTS _migrations (
       uid UUID DEFAULT generateUUIDv4(),
       version UInt32,
