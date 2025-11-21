@@ -36,11 +36,17 @@ For TLS/HTTPS connections, you can provide a custom CA certificate and optional 
   Optional options
       --db-engine=<value>       ON CLUSTER and/or ENGINE for DB
                                   (default: 'ENGINE=Atomic')
-      --timeout=<value>         Client request timeout 
+      --table-engine=<value>    Engine for the _migrations table
+                                  (default: 'MergeTree')
+      --timeout=<value>         Client request timeout
                                   (milliseconds, default: 30000)
       --ca-cert=<path>          CA certificate file path
       --cert=<path>             Client certificate file path
-      --key=<path>              Client key file path                            
+      --key=<path>              Client key file path
+      --abort-divergent=<value> Abort if applied migrations have
+                                  different checksums (default: true)
+                                  Set to 'false' to allow divergent
+                                  migrations                            
 
   Environment variables
       Instead of options can be used environment variables.
@@ -50,12 +56,16 @@ For TLS/HTTPS connections, you can provide a custom CA certificate and optional 
       CH_MIGRATIONS_DB          Database name (--db)
       CH_MIGRATIONS_HOME        Migrations' directory (--migrations-home)
 
-      CH_MIGRATIONS_DB_ENGINE   (optional) DB engine (--db-engine)
-      CH_MIGRATIONS_TIMEOUT     (optional) Client request timeout 
-                                  (--timeout)
-      CH_MIGRATIONS_CA_CERT     (optional) CA certificate file path
-      CH_MIGRATIONS_CERT        (optional) Client certificate file path
-      CH_MIGRATIONS_KEY         (optional) Client key file path
+      CH_MIGRATIONS_DB_ENGINE        (optional) DB engine (--db-engine)
+      CH_MIGRATIONS_TABLE_ENGINE     (optional) Migrations table engine
+                                       (--table-engine)
+      CH_MIGRATIONS_TIMEOUT          (optional) Client request timeout
+                                       (--timeout)
+      CH_MIGRATIONS_CA_CERT          (optional) CA certificate file path
+      CH_MIGRATIONS_CERT             (optional) Client certificate file path
+      CH_MIGRATIONS_KEY              (optional) Client key file path
+      CH_MIGRATIONS_ABORT_DIVERGENT  (optional) Abort on divergent migrations
+                                       (--abort-divergent)
 
 
   CLI executions examples
@@ -65,10 +75,11 @@ For TLS/HTTPS connections, you can provide a custom CA certificate and optional 
       --migrations-home=/app/clickhouse/migrations
 
     settings provided as options, including timeout and db-engine
-      clickhouse-migrations migrate --host=http://localhost:8123 
-      --user=default --password='' --db=analytics 
-      --migrations-home=/app/clickhouse/migrations --timeout=60000 
-      --db-engine="ON CLUSTER default ENGINE=Replicated('{replica}')"    
+      clickhouse-migrations migrate --host=http://localhost:8123
+      --user=default --password='' --db=analytics
+      --migrations-home=/app/clickhouse/migrations --timeout=60000
+      --db-engine="ON CLUSTER default ENGINE=Replicated('{replica}')"
+      --table-engine="ReplicatedMergeTree('/clickhouse/tables/{database}/migrations', '{replica}')"
 
     settings provided as environment variables
       clickhouse-migrations migrate
@@ -81,6 +92,12 @@ For TLS/HTTPS connections, you can provide a custom CA certificate and optional 
       --user=default --password='' --db=analytics
       --migrations-home=/app/clickhouse/migrations
       --ca-cert=/app/certs/ca.pem --cert=/app/certs/client.crt --key=/app/certs/client.key
+
+    ignore divergent migrations (allow changed migration files)
+      clickhouse-migrations migrate --host=http://localhost:8123
+      --user=default --password='' --db=analytics
+      --migrations-home=/app/clickhouse/migrations
+      --abort-divergent=false
 ```
 
 Migration file example:

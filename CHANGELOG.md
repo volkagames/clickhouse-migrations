@@ -1,5 +1,26 @@
 # Changelog
 
+## [1.1.3](https://github.com/VVVi/clickhouse-migrations/compare/v1.1.2...v1.1.3) (2025-11-21)
+
+
+### Features
+
+* add --abort-divergent option to allow ignoring divergent migrations
+  - Add new CLI option `--abort-divergent` (default: true) to control behavior when applied migrations have different checksums
+  - Add environment variable `CH_MIGRATIONS_ABORT_DIVERGENT` support
+  - When set to false, migration process continues with warning instead of aborting on checksum mismatch
+  - Similar to `set_abort_divergent` feature from Rust's Refinery library
+
+## [1.1.2](https://github.com/VVVi/clickhouse-migrations/compare/v1.1.1...v1.1.2) (2025-11-21)
+
+
+### Features
+
+* add --table-engine option to configure migrations table engine
+  - Add new CLI option `--table-engine` (default: "MergeTree") to configure engine for the _migrations table
+  - Add environment variable `CH_MIGRATIONS_TABLE_ENGINE` support
+  - Allows customization of the _migrations table engine (e.g., ReplicatedMergeTree for clustered setups)
+
 ## [1.1.1](https://github.com/VVVi/clickhouse-migrations/compare/v1.1.0...v1.1.1) (2025-09-30)
 
 

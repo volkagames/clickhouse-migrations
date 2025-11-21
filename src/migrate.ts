@@ -105,7 +105,7 @@ const create_db = async (
   await client.close();
 };
 
-const init_migration_table = async (client: ClickHouseClient): Promise<void> => {
+const init_migration_table = async (client: ClickHouseClient, table_engine: string = 'MergeTree'): Promise<void> => {
   const q = `CREATE TABLE IF NOT EXISTS _migrations (
       uid UUID DEFAULT generateUUIDv4(),
       version UInt32,
@@ -113,7 +113,7 @@ const init_migration_table = async (client: ClickHouseClient): Promise<void> => 
       migration_name String,
       applied_at DateTime DEFAULT now()
     )
-    ENGINE = MergeTree
+    ENGINE = ${table_engine}
     ORDER BY tuple(applied_at)`;
 
   try {
@@ -175,6 +175,7 @@ const apply_migrations = async (
   client: ClickHouseClient,
   migrations: MigrationBase[],
   migrations_home: string,
+  abort_divergent: boolean = true,
 ): Promise<void> => {
   let migration_query_result: MigrationsRowData[] = [];
   try {
@@ -216,13 +217,20 @@ const apply_migrations = async (
     if (migrations_applied[migration.version]) {
       // Check if migration file was not changed after apply.
       if (migrations_applied[migration.version].checksum !== checksum) {
-        log(
-          'error',
-          `a migration file should't be changed after apply. Please, restore content of the ${
-            migrations_applied[migration.version].migration_name
-          } migrations.`,
-        );
-        process.exit(1);
+        if (abort_divergent) {
+          log(
+            'error',
+            `a migration file should't be changed after apply. Please, restore content of the ${
+              migrations_applied[migration.version].migration_name
+            } migrations.`,
+          );
+          process.exit(1);
+        } else {
+          log(
+            'info',
+            `Warning: applied migration ${migrations_applied[migration.version].migration_name} has different checksum than the file on filesystem. Continuing due to --abort-divergent=false.`,
+          );
+        }
       }
 
       // Skip if a migration is already applied.
@@ -281,10 +289,12 @@ const migration = async (
   password: string,
   db_name: string,
   db_engine?: string,
+  table_engine?: string,
   timeout?: string,
   ca_cert?: string | undefined,
   cert?: string | undefined,
   key?: string | undefined,
+  abort_divergent: boolean = true,
 ): Promise<void> => {
   const migrations = get_migrations(migrations_home);
 
@@ -292,9 +302,9 @@ const migration = async (
 
   const client = connect(host, username, password, db_name, timeout, ca_cert, cert, key);
 
-  await init_migration_table(client);
+  await init_migration_table(client, table_engine);
 
-  await apply_migrations(client, migrations, migrations_home);
+  await apply_migrations(client, migrations, migrations_home, abort_divergent);
 
   await client.close();
 };
@@ -302,7 +312,7 @@ const migration = async (
 const migrate = () => {
   const program = new Command();
 
-  program.name('clickhouse-migrations').description('ClickHouse migrations.').version('1.1.1');
+  program.name('clickhouse-migrations').description('ClickHouse migrations.').version('1.1.3');
 
   program
     .command('migrate')
@@ -318,6 +328,11 @@ const migrate = () => {
       process.env.CH_MIGRATIONS_DB_ENGINE,
     )
     .option(
+      '--table-engine <value>',
+      'Engine for the _migrations table (default: "MergeTree")',
+      process.env.CH_MIGRATIONS_TABLE_ENGINE,
+    )
+    .option(
       '--timeout <value>',
       'Client request timeout (milliseconds, default value 30000)',
       process.env.CH_MIGRATIONS_TIMEOUT,
@@ -325,7 +340,14 @@ const migrate = () => {
     .option('--ca-cert <path>', 'CA certificate file path', process.env.CH_MIGRATIONS_CA_CERT)
     .option('--cert <path>', 'Client certificate file path', process.env.CH_MIGRATIONS_CERT)
     .option('--key <path>', 'Client key file path', process.env.CH_MIGRATIONS_KEY)
+    .option(
+      '--abort-divergent <value>',
+      'Abort if applied migrations have different checksums (default: true)',
+      process.env.CH_MIGRATIONS_ABORT_DIVERGENT,
+    )
     .action(async (options: CliParameters) => {
+      const abortDivergent =
+        options.abortDivergent === undefined ? true : String(options.abortDivergent).toLowerCase() !== 'false';
       await migration(
         options.migrationsHome,
         options.host,
@@ -333,10 +355,12 @@ const migrate = () => {
         options.password,
         options.db,
         options.dbEngine,
+        options.tableEngine,
         options.timeout,
         options.caCert,
         options.cert,
         options.key,
+        abortDivergent,
       );
     });
 
