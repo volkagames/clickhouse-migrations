@@ -1,6 +1,6 @@
 import { describe, it, expect, jest } from '@jest/globals';
-import fs from 'fs';
-import path from 'path';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 
 // Mock the ClickHouse client to capture the connection parameters
 const mockCreateClient = jest.fn();
@@ -231,10 +231,12 @@ describe('TLS Configuration Unit Tests', () => {
       });
 
       // First call should be for database creation (no database specified)
-      expect(calls[0][0]).not.toHaveProperty('database');
+      expect(calls[0]).toBeDefined();
+      expect(calls[0]?.[0]).not.toHaveProperty('database');
 
       // Second call should be for migrations (with database specified)
-      expect(calls[1][0]).toHaveProperty('database', 'analytics');
+      expect(calls[1]).toBeDefined();
+      expect(calls[1]?.[0]).toHaveProperty('database', 'analytics');
     });
   });
 });

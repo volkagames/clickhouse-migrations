@@ -220,6 +220,11 @@ const getMigrations = async (migrationsHome: string): Promise<{ version: number;
     }
 
     const versionString = file.split('_')[0];
+    if (!versionString) {
+      throw new Error(
+        `Migration name should start from a non-negative integer, example: 0_init.sql or 1_init.sql. Invalid migration: ${file}`,
+      );
+    }
     const version = parseInt(versionString, 10);
 
     // Validate version format: non-negative integer (leading zeros OK: 000_init.sql → version 0)
@@ -248,10 +253,10 @@ const getMigrations = async (migrationsHome: string): Promise<{ version: number;
 
   // Fail fast on duplicate versions
   for (let i = 1; i < migrations.length; i++) {
-    if (migrations[i].version === migrations[i - 1].version) {
-      throw new Error(
-        `Found duplicate migration version ${migrations[i].version}: ${migrations[i - 1].file}, ${migrations[i].file}`,
-      );
+    const current = migrations[i];
+    const previous = migrations[i - 1];
+    if (current && previous && current.version === previous.version) {
+      throw new Error(`Found duplicate migration version ${current.version}: ${previous.file}, ${current.file}`);
     }
   }
 
@@ -432,7 +437,7 @@ const runMigration = async (config: MigrationRunConfig): Promise<void> => {
 const migrate = () => {
   const program = new Command();
 
-  program.name('clickhouse-migrations').description('ClickHouse migrations.').version("1.2.0");
+  program.name('clickhouse-migrations').description('ClickHouse migrations.').version('1.2.0');
 
   program
     .command('migrate')

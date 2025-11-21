@@ -78,22 +78,26 @@ const removeBlockComments = (content: string): string => {
 
   try {
     for (let i = 0; i < content.length; i++) {
-      const inString = parser.processChar(content[i], content, i);
+      const char = content[i];
+      if (char === undefined) continue;
+      const inString = parser.processChar(char, content, i);
 
       if (inString) {
-        result += content[i];
+        result += char;
         continue;
       }
 
-      if (content[i] === '/' && content[i + 1] === '*') {
+      if (char === '/' && content[i + 1] === '*') {
         let j = i + 2;
         const commentParser = parserStack.acquire();
 
         try {
           while (j < content.length) {
-            commentParser.processChar(content[j], content, j);
+            const jChar = content[j];
+            if (jChar === undefined) break;
+            commentParser.processChar(jChar, content, j);
 
-            if (!commentParser.isInString() && content[j] === '*' && content[j + 1] === '/') {
+            if (!commentParser.isInString() && jChar === '*' && content[j + 1] === '/') {
               i = j + 1;
               break;
             }
@@ -109,7 +113,7 @@ const removeBlockComments = (content: string): string => {
         continue;
       }
 
-      result += content[i];
+      result += char;
     }
 
     return result;
@@ -130,19 +134,21 @@ const removeLineComments = (content: string): string => {
         let result = '';
 
         for (let i = 0; i < line.length; i++) {
-          const inString = parser.processChar(line[i], line, i);
+          const char = line[i];
+          if (char === undefined) continue;
+          const inString = parser.processChar(char, line, i);
 
           if (inString) {
-            result += line[i];
+            result += char;
             continue;
           }
 
-          if (line[i] === '-' && line[i + 1] === '-') break;
+          if (char === '-' && line[i + 1] === '-') break;
 
           // # only valid at line start (shell-style comment)
-          if (line[i] === '#' && result.trim() === '') break;
+          if (char === '#' && result.trim() === '') break;
 
-          result += line[i];
+          result += char;
         }
 
         if (parser.isInString()) {
@@ -165,21 +171,23 @@ const splitByDelimiter = (content: string, delimiter: string): string[] => {
 
   try {
     for (let i = 0; i < content.length; i++) {
-      const inString = parser.processChar(content[i], content, i);
+      const char = content[i];
+      if (char === undefined) continue;
+      const inString = parser.processChar(char, content, i);
 
       if (inString) {
-        current += content[i];
+        current += char;
         continue;
       }
 
-      if (content[i] === delimiter) {
+      if (char === delimiter) {
         const trimmed = current.trim();
         if (trimmed) parts.push(trimmed);
         current = '';
         continue;
       }
 
-      current += content[i];
+      current += char;
     }
 
     const trimmed = current.trim();
@@ -233,9 +241,11 @@ const sqlSets = (content: string): Record<string, string> => {
       let eqIndex = -1;
 
       for (let i = 0; i < part.length; i++) {
-        const inString = parser.processChar(part[i], part, i);
+        const char = part[i];
+        if (char === undefined) continue;
+        const inString = parser.processChar(char, part, i);
 
-        if (!inString && part[i] === '=') {
+        if (!inString && char === '=') {
           eqIndex = i;
           break;
         }
@@ -249,9 +259,13 @@ const sqlSets = (content: string): Record<string, string> => {
       if (!key) return;
 
       // Strip surrounding quotes if present
+      const firstChar = value[0];
+      const lastChar = value[value.length - 1];
       if (
         value.length >= 2 &&
-        ((value[0] === '"' && value[value.length - 1] === '"') || (value[0] === "'" && value[value.length - 1] === "'"))
+        firstChar !== undefined &&
+        lastChar !== undefined &&
+        ((firstChar === '"' && lastChar === '"') || (firstChar === "'" && lastChar === "'"))
       ) {
         value = value.slice(1, -1);
       }
