@@ -15,7 +15,35 @@ Create a directory, where migrations will be stored. It will be used as the valu
 
 In the directory, create migration files, which should be named like this: `1_some_text.sql`, `2_other_text.sql`, `10_more_test.sql`. What's important here is that the migration version number should come first, followed by an underscore (`_`), and then any text can follow. The version number should increase for every next migration. Please note that once a migration file has been applied to the database, it cannot be modified or removed. 
 
-For migrations' content should be used correct SQL ClickHouse queries. Multiple queries can be used in a single migration file, and each query should be terminated with a semicolon (;). The queries could be idempotent - for example: `CREATE TABLE IF NOT EXISTS table ...;` Clickhouse settings, that can be included at the query level, can be added like `SET allow_experimental_object_type = 1;`. For adding comments should be used `--`, `# `, `#!`. 
+For migrations' content should be used correct SQL ClickHouse queries. Multiple queries can be used in a single migration file, and each query should be terminated with a semicolon (;). The queries could be idempotent - for example: `CREATE TABLE IF NOT EXISTS table ...;` Clickhouse settings, that can be included at the query level, can be added like `SET allow_experimental_object_type = 1;`.
+
+### Supported Comment Styles
+
+The migration parser supports both single-line and block comments (PostgreSQL/ClickHouse style):
+
+- **Single-line comments:**
+  - `--` (SQL standard) - can be at the start of a line or after code (inline)
+  - `#` (shell-style) - must be at the start of a line
+  - `#!` (shebang) - must be at the start of a line
+
+- **Block comments** (can be placed anywhere):
+  - `/* single-line block */`
+  - `/* multi-line
+       block comment */`
+
+**Inline comments** are supported (PostgreSQL style):
+```sql
+CREATE TABLE users(
+  id INT,        -- user identifier
+  name TEXT      -- user full name
+);
+```
+
+**Important notes:**
+- String literals are fully preserved and protected
+- `SELECT '-- not a comment' AS text` - preserves `--` inside strings
+- `SELECT '/* not a comment */' AS text` - preserves `/* */` inside strings
+- The parser correctly handles escaped quotes: `'it\'s a test'` 
 
 By default, if the database provided in the `--db` option (or in `CH_MIGRATIONS_DB`) doesn't exist, it will be created automatically. If you want to disable automatic database creation (for users without database creation permissions), use the `--create-database=false` option (or set `CH_MIGRATIONS_CREATE_DATABASE=false` environment variable).
 
@@ -113,19 +141,32 @@ For TLS/HTTPS connections, you can provide a custom CA certificate and optional 
 
 Migration file example:
 (e.g., located at /app/clickhouse/migrations/1_init.sql)
-```
--- an example of migration file 1_init.sql
+```sql
+-- An example of migration file 1_init.sql
+-- This migration creates the events table with JSON support
 
 SET allow_experimental_json_type = 1;
 
+/*
+ * Events table for storing user session events
+ * Uses AggregatingMergeTree for efficient aggregations
+ */
 CREATE TABLE IF NOT EXISTS events (
-  timestamp DateTime('UTC'),
-  session_id UInt64,
-  event JSON
+  timestamp DateTime('UTC'),    -- Event timestamp in UTC
+  session_id UInt64,             -- User session identifier
+  event JSON                     -- Event data in JSON format
 )
 ENGINE=AggregatingMergeTree
-PARTITION BY toYYYYMM(timestamp) 
-SAMPLE BY session_id 
-ORDER BY (session_id) 
+PARTITION BY toYYYYMM(timestamp)
+SAMPLE BY session_id
+ORDER BY (session_id)
 SETTINGS index_granularity = 8192;
+
+/* Create a view for daily event counts */
+CREATE VIEW IF NOT EXISTS daily_events AS
+SELECT
+  toDate(timestamp) AS date,
+  count() AS event_count
+FROM events
+GROUP BY date;
 ```      
