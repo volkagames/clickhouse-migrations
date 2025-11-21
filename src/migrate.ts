@@ -1,9 +1,7 @@
-import { createClient } from '@clickhouse/client';
-import type { ClickHouseClient, ClickHouseClientConfigOptions } from '@clickhouse/client';
+import { type ClickHouseClient, type ClickHouseClientConfigOptions, createClient } from '@clickhouse/client';
 import { Command } from 'commander';
-import fs from 'fs';
-import crypto from 'crypto';
-
+import crypto from 'node:crypto';
+import fs from 'node:fs';
 import { sql_queries, sql_sets } from './sql-parse';
 
 const log = (type: 'info' | 'error' = 'info', message: string, error?: string) => {
@@ -152,10 +150,10 @@ const init_migration_table = async (client: ClickHouseClient, table_engine: stri
 };
 
 const get_migrations = (migrations_home: string): { version: number; file: string }[] => {
-  let files;
+  let files: string[] = [];
   try {
     files = fs.readdirSync(migrations_home);
-  } catch (e: unknown) {
+  } catch (_: unknown) {
     log('error', `no migration directory ${migrations_home}. Please create it.`);
     process.exit(1);
   }
@@ -249,7 +247,7 @@ const apply_migrations = async (
   let applied_migrations = '';
 
   for (const migration of migrations) {
-    const content = fs.readFileSync(migrations_home + '/' + migration.file).toString();
+    const content = fs.readFileSync(`${migrations_home}/${migration.file}`).toString();
     const checksum = crypto.createHash('md5').update(content).digest('hex');
 
     if (migrations_applied[migration.version]) {
@@ -310,7 +308,7 @@ const apply_migrations = async (
       process.exit(1);
     }
 
-    applied_migrations = applied_migrations ? applied_migrations + ', ' + migration.file : migration.file;
+    applied_migrations = applied_migrations ? `${applied_migrations}, ${migration.file}` : migration.file;
   }
 
   if (applied_migrations) {

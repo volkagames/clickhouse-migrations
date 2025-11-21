@@ -7,7 +7,7 @@ const sql_queries = (content: string): string[] => {
     .replace(/\s+/g, ' ')
     .split(';')
     .map((el: string) => el.trim())
-    .filter((el: string) => el.length != 0);
+    .filter((el: string) => el.length !== 0);
 
   return queries;
 };
