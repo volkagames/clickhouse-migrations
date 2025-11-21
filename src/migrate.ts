@@ -125,13 +125,17 @@ const create_db = async (
     }
   }
 
-  const q = db_engine
-    ? `CREATE DATABASE IF NOT EXISTS \`${db_name}\` ${db_engine}`
-    : `CREATE DATABASE IF NOT EXISTS \`${db_name}\``;
+  // Use parameterized query with Identifier type to safely escape database name
+  // This prevents SQL injection even if validation is bypassed
+  const baseQuery = 'CREATE DATABASE IF NOT EXISTS {name:Identifier}';
+  const q = db_engine ? `${baseQuery} ${db_engine}` : baseQuery;
 
   try {
     await client.exec({
       query: q,
+      query_params: {
+        name: db_name,
+      },
       clickhouse_settings: {
         wait_end_of_query: 1,
       },
