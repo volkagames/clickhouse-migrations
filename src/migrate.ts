@@ -86,6 +86,28 @@ const create_db = async (
   }
 
   // In open source ClickHouse - default DB engine is "Atomic", for Cloud - "Shared". If not set, appropriate default is used.
+  // Validate db_engine parameter to prevent SQL injection
+  // Documentation: https://clickhouse.com/docs/en/sql-reference/statements/create/database
+  // Valid format: [ON CLUSTER <cluster>] ENGINE=<engine> [COMMENT '<comment>']
+  // Allowed engines: Atomic, Lazy, MySQL, MaterializedMySQL, PostgreSQL, MaterializedPostgreSQL, Replicated, SQLite
+  // Examples:
+  //   - ENGINE=Atomic
+  //   - ON CLUSTER my_cluster ENGINE=Replicated
+  //   - ENGINE=Atomic COMMENT 'Production database'
+  //   - ON CLUSTER my_cluster ENGINE=Replicated COMMENT 'Replicated DB'
+  if (db_engine) {
+    // Allow: ENGINE=<name> or ON CLUSTER <name> ENGINE=<name> or with COMMENT
+    // Valid pattern: optional "ON CLUSTER <cluster>" followed by "ENGINE=<engine>" optionally followed by "COMMENT '<text>'"
+    const validPattern = /^(ON\s+CLUSTER\s+[\w.-]+\s+)?ENGINE\s*=\s*[\w()]+(\s+COMMENT\s+'[^']*')?$/i;
+    if (!validPattern.test(db_engine.trim())) {
+      log(
+        'error',
+        `Invalid db-engine parameter. Must match pattern: [ON CLUSTER <name>] ENGINE=<engine> [COMMENT '<comment>']. See: https://clickhouse.com/docs/en/sql-reference/statements/create/database`,
+      );
+      process.exit(1);
+    }
+  }
+
   const q = db_engine
     ? `CREATE DATABASE IF NOT EXISTS "${db_name}" ${db_engine}`
     : `CREATE DATABASE IF NOT EXISTS "${db_name}"`;
