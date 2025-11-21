@@ -1,17 +1,17 @@
 /// <reference types="node" />
 
-type MigrationBase = {
+export type MigrationBase = {
   version: number;
   file: string;
 };
 
-type MigrationsRowData = {
+export type MigrationsRowData = {
   version: number;
   checksum: string;
   migration_name: string;
 };
 
-type CliParameters = {
+export type CliParameters = {
   migrationsHome: string;
   host: string;
   user: string;
@@ -27,6 +27,6 @@ type CliParameters = {
   createDatabase?: boolean | string;
 };
 
-type QueryError = {
+export type QueryError = {
   message: string;
 };

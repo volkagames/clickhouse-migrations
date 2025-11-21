@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import { type ClickHouseClient, type ClickHouseClientConfigOptions, createClient } from '@clickhouse/client';
 import { Command } from 'commander';
 import { sqlSets, sqlQueries } from './sql-parse';
+import type { MigrationBase, MigrationsRowData, CliParameters, QueryError } from './types/cli';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { version } = require('../package.json');
