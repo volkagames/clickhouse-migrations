@@ -371,10 +371,13 @@ const migration = async (
   cert?: string | undefined,
   key?: string | undefined,
   abort_divergent: boolean = true,
+  create_database: boolean = true,
 ): Promise<void> => {
   const migrations = get_migrations(migrations_home);
 
-  await create_db(host, username, password, db_name, db_engine, timeout, ca_cert, cert, key);
+  if (create_database) {
+    await create_db(host, username, password, db_name, db_engine, timeout, ca_cert, cert, key);
+  }
 
   const client = connect(host, username, password, db_name, timeout, ca_cert, cert, key);
 
@@ -421,9 +424,16 @@ const migrate = () => {
       'Abort if applied migrations have different checksums (default: true)',
       process.env.CH_MIGRATIONS_ABORT_DIVERGENT,
     )
+    .option(
+      '--create-database <value>',
+      'Create database if it does not exist (default: true)',
+      process.env.CH_MIGRATIONS_CREATE_DATABASE,
+    )
     .action(async (options: CliParameters) => {
       const abortDivergent =
         options.abortDivergent === undefined ? true : String(options.abortDivergent).toLowerCase() !== 'false';
+      const createDatabase =
+        options.createDatabase === undefined ? true : String(options.createDatabase).toLowerCase() !== 'false';
       await migration(
         options.migrationsHome,
         options.host,
@@ -437,6 +447,7 @@ const migrate = () => {
         options.cert,
         options.key,
         abortDivergent,
+        createDatabase,
       );
     });
 

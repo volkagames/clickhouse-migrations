@@ -21,7 +21,21 @@ describe('Duplicate version validation', () => {
     const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
 
     await expect(
-      migration('tests/migrations/duplicate-versions', 'http://sometesthost:8123', 'default', '', 'analytics'),
+      migration(
+        'tests/migrations/duplicate-versions',
+        'http://sometesthost:8123',
+        'default',
+        '',
+        'analytics',
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        true,
+        false, // create_database = false (since we check migration files before DB operations)
+      ),
     ).rejects.toThrow('process.exit called with code 1');
 
     expect(consoleErrorSpy).toHaveBeenCalledWith(

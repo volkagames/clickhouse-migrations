@@ -17,7 +17,7 @@ In the directory, create migration files, which should be named like this: `1_so
 
 For migrations' content should be used correct SQL ClickHouse queries. Multiple queries can be used in a single migration file, and each query should be terminated with a semicolon (;). The queries could be idempotent - for example: `CREATE TABLE IF NOT EXISTS table ...;` Clickhouse settings, that can be included at the query level, can be added like `SET allow_experimental_object_type = 1;`. For adding comments should be used `--`, `# `, `#!`. 
 
-If the database provided in the `--db` option (or in `CH_MIGRATIONS_DB`) doesn't exist, it will be created automatically.
+By default, if the database provided in the `--db` option (or in `CH_MIGRATIONS_DB`) doesn't exist, it will be created automatically. If you want to disable automatic database creation (for users without database creation permissions), use the `--create-database=false` option (or set `CH_MIGRATIONS_CREATE_DATABASE=false` environment variable).
 
 For TLS/HTTPS connections, you can provide a custom CA certificate and optional client certificate/key via the `--ca-cert`, `--cert`, and `--key` options (or the `CH_MIGRATIONS_CA_CERT`, `CH_MIGRATIONS_CERT`, and `CH_MIGRATIONS_KEY` environment variables).
 
@@ -46,7 +46,10 @@ For TLS/HTTPS connections, you can provide a custom CA certificate and optional 
       --abort-divergent=<value> Abort if applied migrations have
                                   different checksums (default: true)
                                   Set to 'false' to allow divergent
-                                  migrations                            
+                                  migrations
+      --create-database=<value> Create database if it doesn't exist
+                                  (default: true)
+                                  Set to 'false' to disable auto-creation                            
 
   Environment variables
       Instead of options can be used environment variables.
@@ -66,6 +69,8 @@ For TLS/HTTPS connections, you can provide a custom CA certificate and optional 
       CH_MIGRATIONS_KEY              (optional) Client key file path
       CH_MIGRATIONS_ABORT_DIVERGENT  (optional) Abort on divergent migrations
                                        (--abort-divergent)
+      CH_MIGRATIONS_CREATE_DATABASE  (optional) Create database if not exists
+                                       (--create-database)
 
 
   CLI executions examples
@@ -98,6 +103,12 @@ For TLS/HTTPS connections, you can provide a custom CA certificate and optional 
       --user=default --password='' --db=analytics
       --migrations-home=/app/clickhouse/migrations
       --abort-divergent=false
+
+    disable automatic database creation (for users without CREATE DATABASE permissions)
+      clickhouse-migrations migrate --host=http://localhost:8123
+      --user=default --password='' --db=analytics
+      --migrations-home=/app/clickhouse/migrations
+      --create-database=false
 ```
 
 Migration file example:

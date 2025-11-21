@@ -19,8 +19,7 @@ describe('Migration tests', () => {
   //   jest.resetModules();
   // });
 
-  // todo: remove only
-  it.only('First migration', async () => {
+  it('First migration', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const querySpy = jest.spyOn(createClient1, 'query') as jest.MockedFunction<any>;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -28,7 +27,20 @@ describe('Migration tests', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const insertSpy = jest.spyOn(createClient1, 'insert') as jest.MockedFunction<any>;
 
-    await migration('tests/migrations/one', 'http://sometesthost:8123', 'default', '', 'analytics');
+    await migration(
+      'tests/migrations/one',
+      'http://sometesthost:8123',
+      'default',
+      '',
+      'analytics',
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      true,
+    );
 
     expect(execSpy).toHaveBeenCalledTimes(3);
     expect(querySpy).toHaveBeenCalledTimes(1);

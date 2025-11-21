@@ -24,6 +24,7 @@ type CliParameters = {
   cert?: string;
   key?: string;
   abortDivergent?: boolean | string;
+  createDatabase?: boolean | string;
 };
 
 type QueryError = {

@@ -31,7 +31,20 @@ describe('TLS Configuration Unit Tests', () => {
 
   describe('TLS configuration building', () => {
     it('should create ClickHouse client without TLS when no certificates provided', async () => {
-      await migration('tests/migrations/one', 'http://clickhouse:8123', 'default', '', 'analytics');
+      await migration(
+        'tests/migrations/one',
+        'http://clickhouse:8123',
+        'default',
+        '',
+        'analytics',
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        true,
+      );
 
       // Verify createClient was called without TLS configuration
       const calls = mockCreateClient.mock.calls as Array<[Record<string, unknown>]>;
@@ -54,6 +67,9 @@ describe('TLS Configuration Unit Tests', () => {
         'MergeTree',  // table_engine
         '30000',      // timeout
         caCertPath,   // ca_cert
+        undefined,    // cert
+        undefined,    // key
+        true,         // abort_divergent
       );
 
       // Verify createClient was called with TLS configuration containing only CA cert
@@ -86,6 +102,7 @@ describe('TLS Configuration Unit Tests', () => {
         caCertPath,    // ca_cert
         clientCertPath,  // cert
         clientKeyPath,   // key
+        true,          // abort_divergent
       );
 
       // Verify createClient was called with complete TLS configuration
@@ -120,6 +137,7 @@ describe('TLS Configuration Unit Tests', () => {
         caCertPath,      // ca_cert
         clientCertPath,  // cert
         clientKeyPath,   // key
+        true,            // abort_divergent
       );
 
       const calls = mockCreateClient.mock.calls as Array<[Record<string, unknown>]>;
@@ -165,6 +183,7 @@ describe('TLS Configuration Unit Tests', () => {
         caCertPath,      // ca_cert
         clientCertPath,  // cert
         clientKeyPath,   // key
+        true,            // abort_divergent
       );
 
       const calls = mockCreateClient.mock.calls as Array<[Record<string, unknown>]>;
@@ -197,6 +216,9 @@ describe('TLS Configuration Unit Tests', () => {
         'MergeTree',  // table_engine
         '30000',      // timeout
         caCertPath,   // ca_cert
+        undefined,    // cert
+        undefined,    // key
+        true,         // abort_divergent
       );
 
       // Should have exactly 2 calls: one for DB creation, one for migrations

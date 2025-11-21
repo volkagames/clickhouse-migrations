@@ -21,7 +21,20 @@ describe('Table engine configuration tests', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const execSpy = jest.spyOn(createClient1, 'exec') as jest.MockedFunction<any>;
 
-    await migration('tests/migrations/one', 'http://sometesthost:8123', 'default', '', 'analytics');
+    await migration(
+      'tests/migrations/one',
+      'http://sometesthost:8123',
+      'default',
+      '',
+      'analytics',
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      true,
+    );
 
     // Check that _migrations table was created with default MergeTree engine
     expect(execSpy).toHaveBeenNthCalledWith(2, {
@@ -54,6 +67,11 @@ describe('Table engine configuration tests', () => {
       'analytics',
       undefined,
       customEngine, // table_engine parameter
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      true,
     );
 
     // Check that _migrations table was created with custom engine
@@ -87,6 +105,11 @@ describe('Table engine configuration tests', () => {
       'analytics',
       undefined,
       cloudEngine, // table_engine parameter
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      true,
     );
 
     // Check that _migrations table was created with SharedMergeTree
