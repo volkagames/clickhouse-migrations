@@ -1,172 +1,618 @@
-
 # clickhouse-migrations
 
 > ClickHouse Migrations CLI
 
-## Install
+[![npm version](https://img.shields.io/npm/v/clickhouse-migrations.svg)](https://www.npmjs.com/package/clickhouse-migrations)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+
+## Features
+
+- **Sequential Migration Management** - Apply migrations in order with version tracking
+- **Checksum Verification** - Detect modified migrations to prevent inconsistencies
+- **TLS/HTTPS Support** - Secure connections with custom certificates
+- **Clustered ClickHouse** - Support for ON CLUSTER and replicated tables
+- **Flexible Configuration** - CLI options or environment variables
+- **SQL Comment Support** - Comprehensive comment parsing (PostgreSQL/ClickHouse compatible)
+- **Zero Dependencies** - Minimal footprint with only `@clickhouse/client` and `commander`
+
+## Table of Contents
+
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+- [Migration File Format](#migration-file-format)
+- [Usage Examples](#usage-examples)
+- [CLI Reference](#cli-reference)
+- [Programmatic Usage](#programmatic-usage)
+- [Best Practices](#best-practices)
+- [Troubleshooting](#troubleshooting)
+
+## Installation
 
 ```sh
 npm install clickhouse-migrations
 ```
 
-## Usage
+Or install globally:
 
-Create a directory, where migrations will be stored. It will be used as the value for the `--migrations-home` option (or for environment variable `CH_MIGRATIONS_HOME`).
+```sh
+npm install -g clickhouse-migrations
+```
 
-In the directory, create migration files, which should be named like this: `1_some_text.sql`, `2_other_text.sql`, `10_more_test.sql`. What's important here is that the migration version number should come first, followed by an underscore (`_`), and then any text can follow. The version number should increase for every next migration. Please note that once a migration file has been applied to the database, it cannot be modified or removed. 
+## Quick Start
 
-For migrations' content should be used correct SQL ClickHouse queries. Multiple queries can be used in a single migration file, and each query should be terminated with a semicolon (;). The queries could be idempotent - for example: `CREATE TABLE IF NOT EXISTS table ...;` Clickhouse settings, that can be included at the query level, can be added like `SET allow_experimental_object_type = 1;`.
+### 1. Create a migrations directory
+
+```sh
+mkdir -p ./migrations
+```
+
+### 2. Create your first migration
+
+Create `./migrations/1_init.sql`:
+
+```sql
+-- Initial schema setup
+CREATE TABLE IF NOT EXISTS users (
+  id UInt64,
+  email String,
+  created_at DateTime DEFAULT now()
+)
+ENGINE = MergeTree()
+ORDER BY (id);
+
+CREATE TABLE IF NOT EXISTS events (
+  user_id UInt64,
+  event_type String,
+  timestamp DateTime
+)
+ENGINE = MergeTree()
+PARTITION BY toYYYYMM(timestamp)
+ORDER BY (user_id, timestamp);
+```
+
+### 3. Run migrations
+
+```sh
+clickhouse-migrations migrate \
+  --host=http://localhost:8123 \
+  --user=default \
+  --password='' \
+  --db=myapp \
+  --migrations-home=./migrations
+```
+
+## Migration File Format
+
+### Naming Convention
+
+Migration files must follow this pattern: `{version}_{description}.sql`
+
+- `{version}` - Sequential integer (e.g., 1, 2, 3, 10, 100)
+- `_` - Underscore separator (required)
+- `{description}` - Any descriptive text (alphanumeric, hyphens, underscores)
+
+**Valid examples:**
+- `1_init.sql`
+- `2_add_users_table.sql`
+- `10_create_materialized_views.sql`
+- `001_initial_schema.sql` (leading zeros are OK)
+
+**Invalid examples:**
+- `init.sql` (missing version)
+- `v1_init.sql` (version must be numeric)
+- `1-init.sql` (wrong separator, use underscore)
+
+### SQL Syntax
+
+Multiple queries can be included in a single migration file. Each query must be terminated with a semicolon (`;`).
+
+```sql
+-- Multiple queries example
+CREATE TABLE table1 (...);
+CREATE TABLE table2 (...);
+INSERT INTO table1 VALUES (...);
+```
+
+### ClickHouse Settings
+
+You can include ClickHouse settings at the query level:
+
+```sql
+SET allow_experimental_json_type = 1;
+SET allow_experimental_object_type = 1;
+
+CREATE TABLE events (
+  id UInt64,
+  data JSON
+) ENGINE = MergeTree() ORDER BY id;
+```
 
 ### Supported Comment Styles
 
-The migration parser supports both single-line and block comments (PostgreSQL/ClickHouse style):
+The parser supports comprehensive SQL comment syntax:
 
-- **Single-line comments:**
-  - `--` (SQL standard) - can be at the start of a line or after code (inline)
-  - `#` (shell-style) - must be at the start of a line
-  - `#!` (shebang) - must be at the start of a line
-
-- **Block comments** (can be placed anywhere):
-  - `/* single-line block */`
-  - `/* multi-line
-       block comment */`
-
-**Inline comments** are supported (PostgreSQL style):
+**Single-line comments:**
 ```sql
-CREATE TABLE users(
-  id INT,        -- user identifier
-  name TEXT      -- user full name
-);
+-- Standard SQL comment
+# Shell-style comment (must be at line start)
+#! Shebang comment
+
+SELECT * FROM users;  -- Inline comment after code
 ```
 
-**Important notes:**
-- String literals are fully preserved and protected
-- `SELECT '-- not a comment' AS text` - preserves `--` inside strings
-- `SELECT '/* not a comment */' AS text` - preserves `/* */` inside strings
-- The parser correctly handles escaped quotes: `'it\'s a test'` 
-
-By default, if the database provided in the `--db` option (or in `CH_MIGRATIONS_DB`) doesn't exist, it will be created automatically. If you want to disable automatic database creation (for users without database creation permissions), use the `--create-database=false` option (or set `CH_MIGRATIONS_CREATE_DATABASE=false` environment variable).
-
-For TLS/HTTPS connections, you can provide a custom CA certificate and optional client certificate/key via the `--ca-cert`, `--cert`, and `--key` options (or the `CH_MIGRATIONS_CA_CERT`, `CH_MIGRATIONS_CERT`, and `CH_MIGRATIONS_KEY` environment variables).
-
-```
-  Usage
-    $ clickhouse-migrations migrate <options>
-
-  Required options
-      --host=<name>             Clickhouse hostname 
-                                  (ex. https://clickhouse:8123)
-      --user=<name>             Username
-      --password=<password>     Password
-      --db=<name>               Database name
-      --migrations-home=<dir>   Migrations' directory
-
-  Optional options
-      --db-engine=<value>       ON CLUSTER and/or ENGINE for DB
-                                  (default: 'ENGINE=Atomic')
-      --table-engine=<value>    Engine for the _migrations table
-                                  (default: 'MergeTree')
-      --timeout=<value>         Client request timeout
-                                  (milliseconds, default: 30000)
-      --ca-cert=<path>          CA certificate file path
-      --cert=<path>             Client certificate file path
-      --key=<path>              Client key file path
-      --abort-divergent=<value> Abort if applied migrations have
-                                  different checksums (default: true)
-                                  Set to 'false' to allow divergent
-                                  migrations
-      --create-database=<value> Create database if it doesn't exist
-                                  (default: true)
-                                  Set to 'false' to disable auto-creation                            
-
-  Environment variables
-      Instead of options can be used environment variables.
-      CH_MIGRATIONS_HOST        Clickhouse hostname (--host)
-      CH_MIGRATIONS_USER        Username (--user)
-      CH_MIGRATIONS_PASSWORD    Password (--password)
-      CH_MIGRATIONS_DB          Database name (--db)
-      CH_MIGRATIONS_HOME        Migrations' directory (--migrations-home)
-
-      CH_MIGRATIONS_DB_ENGINE        (optional) DB engine (--db-engine)
-      CH_MIGRATIONS_TABLE_ENGINE     (optional) Migrations table engine
-                                       (--table-engine)
-      CH_MIGRATIONS_TIMEOUT          (optional) Client request timeout
-                                       (--timeout)
-      CH_MIGRATIONS_CA_CERT          (optional) CA certificate file path
-      CH_MIGRATIONS_CERT             (optional) Client certificate file path
-      CH_MIGRATIONS_KEY              (optional) Client key file path
-      CH_MIGRATIONS_ABORT_DIVERGENT  (optional) Abort on divergent migrations
-                                       (--abort-divergent)
-      CH_MIGRATIONS_CREATE_DATABASE  (optional) Create database if not exists
-                                       (--create-database)
-
-
-  CLI executions examples
-    settings are passed as command-line options
-      clickhouse-migrations migrate --host=http://localhost:8123
-      --user=default --password='' --db=analytics 
-      --migrations-home=/app/clickhouse/migrations
-
-    settings provided as options, including timeout and db-engine
-      clickhouse-migrations migrate --host=http://localhost:8123
-      --user=default --password='' --db=analytics
-      --migrations-home=/app/clickhouse/migrations --timeout=60000
-      --db-engine="ON CLUSTER default ENGINE=Replicated('{replica}')"
-      --table-engine="ReplicatedMergeTree('/clickhouse/tables/{database}/migrations', '{replica}')"
-
-    settings provided as environment variables
-      clickhouse-migrations migrate
-
-    settings provided partially through options and environment variables
-      clickhouse-migrations migrate --timeout=60000
-
-    settings provided as options with TLS certificates
-      clickhouse-migrations migrate --host=https://localhost:8443
-      --user=default --password='' --db=analytics
-      --migrations-home=/app/clickhouse/migrations
-      --ca-cert=/app/certs/ca.pem --cert=/app/certs/client.crt --key=/app/certs/client.key
-
-    ignore divergent migrations (allow changed migration files)
-      clickhouse-migrations migrate --host=http://localhost:8123
-      --user=default --password='' --db=analytics
-      --migrations-home=/app/clickhouse/migrations
-      --abort-divergent=false
-
-    disable automatic database creation (for users without CREATE DATABASE permissions)
-      clickhouse-migrations migrate --host=http://localhost:8123
-      --user=default --password='' --db=analytics
-      --migrations-home=/app/clickhouse/migrations
-      --create-database=false
-```
-
-Migration file example:
-(e.g., located at /app/clickhouse/migrations/1_init.sql)
+**Block comments:**
 ```sql
--- An example of migration file 1_init.sql
--- This migration creates the events table with JSON support
-
-SET allow_experimental_json_type = 1;
+/* Single-line block comment */
 
 /*
- * Events table for storing user session events
- * Uses AggregatingMergeTree for efficient aggregations
+ * Multi-line block comment
+ * Can span multiple lines
  */
-CREATE TABLE IF NOT EXISTS events (
-  timestamp DateTime('UTC'),    -- Event timestamp in UTC
-  session_id UInt64,             -- User session identifier
-  event JSON                     -- Event data in JSON format
-)
-ENGINE=AggregatingMergeTree
-PARTITION BY toYYYYMM(timestamp)
-SAMPLE BY session_id
-ORDER BY (session_id)
-SETTINGS index_granularity = 8192;
 
-/* Create a view for daily event counts */
-CREATE VIEW IF NOT EXISTS daily_events AS
-SELECT
-  toDate(timestamp) AS date,
-  count() AS event_count
-FROM events
-GROUP BY date;
-```      
+SELECT /* inline block */ * FROM users;
+```
+
+**String literal protection:**
+```sql
+-- Comments inside strings are preserved
+SELECT '-- this is NOT a comment' AS text;
+SELECT '/* also NOT a comment */' AS text;
+SELECT 'it''s ok' AS escaped_quote;  -- Doubled quotes work
+```
+
+## Usage Examples
+
+### Basic Local Development
+
+```sh
+clickhouse-migrations migrate \
+  --host=http://localhost:8123 \
+  --user=default \
+  --password='' \
+  --db=analytics \
+  --migrations-home=./db/migrations
+```
+
+### Production with Environment Variables
+
+Create a `.env` file:
+
+```env
+CH_MIGRATIONS_HOST=https://clickhouse.prod.example.com:8443
+CH_MIGRATIONS_USER=migration_user
+CH_MIGRATIONS_PASSWORD=secure_password_here
+CH_MIGRATIONS_DB=production_db
+CH_MIGRATIONS_HOME=/app/migrations
+CH_MIGRATIONS_TIMEOUT=60000
+```
+
+Then run:
+
+```sh
+clickhouse-migrations migrate
+```
+### Clustered ClickHouse Setup
+
+For replicated environments:
+
+```sh
+clickhouse-migrations migrate \
+  --host=http://clickhouse-node1:8123 \
+  --user=admin \
+  --password='cluster_password' \
+  --db=distributed_db \
+  --migrations-home=./migrations \
+  --db-engine="ON CLUSTER my_cluster ENGINE=Replicated('/clickhouse/databases/{database}', '{shard}', '{replica}')" \
+  --table-engine="ReplicatedMergeTree('/clickhouse/tables/{database}/{table}', '{replica}')"
+```
+
+Example clustered migration file `3_distributed_table.sql`:
+
+```sql
+-- Create replicated table across cluster
+CREATE TABLE IF NOT EXISTS events ON CLUSTER my_cluster (
+  event_id UInt64,
+  user_id UInt64,
+  event_type String,
+  timestamp DateTime
+)
+ENGINE = ReplicatedMergeTree('/clickhouse/tables/{database}/events', '{replica}')
+PARTITION BY toYYYYMM(timestamp)
+ORDER BY (user_id, timestamp);
+
+-- Create distributed table
+CREATE TABLE IF NOT EXISTS events_distributed ON CLUSTER my_cluster AS events
+ENGINE = Distributed(my_cluster, currentDatabase(), events, rand());
+```
+
+### TLS/HTTPS Connections
+
+For secure connections with custom certificates:
+
+```sh
+clickhouse-migrations migrate \
+  --host=https://secure-clickhouse.example.com:8443 \
+  --user=secure_user \
+  --password='secure_password' \
+  --db=secure_db \
+  --migrations-home=./migrations \
+  --ca-cert=./certs/ca.pem \
+  --cert=./certs/client.crt \
+  --key=./certs/client.key \
+  --timeout=60000
+```
+
+### Allow Divergent Migrations (Development Only)
+
+**Warning:** Only use in development environments!
+
+```sh
+clickhouse-migrations migrate \
+  --host=http://localhost:8123 \
+  --user=default \
+  --password='' \
+  --db=dev_db \
+  --migrations-home=./migrations \
+  --abort-divergent=false
+```
+
+This allows you to modify already-applied migrations during development.
+
+### Disable Auto Database Creation
+
+For users without `CREATE DATABASE` permissions:
+
+```sh
+clickhouse-migrations migrate \
+  --host=http://clickhouse.example.com:8123 \
+  --user=limited_user \
+  --password='user_password' \
+  --db=existing_db \
+  --migrations-home=./migrations \
+  --create-database=false
+```
+
+## CLI Reference
+
+### Command
+
+```
+clickhouse-migrations migrate [options]
+```
+
+### Required Options
+
+| Option              | Environment Variable     | Description           | Example                 |
+| ------------------- | ------------------------ | --------------------- | ----------------------- |
+| `--host`            | `CH_MIGRATIONS_HOST`     | ClickHouse server URL | `http://localhost:8123` |
+| `--user`            | `CH_MIGRATIONS_USER`     | Username              | `default`               |
+| `--password`        | `CH_MIGRATIONS_PASSWORD` | Password              | `mypassword`            |
+| `--db`              | `CH_MIGRATIONS_DB`       | Database name         | `analytics`             |
+| `--migrations-home` | `CH_MIGRATIONS_HOME`     | Migrations directory  | `./migrations`          |
+
+### Optional Options
+
+| Option              | Environment Variable            | Default         | Description                |
+| ------------------- | ------------------------------- | --------------- | -------------------------- |
+| `--db-engine`       | `CH_MIGRATIONS_DB_ENGINE`       | `ENGINE=Atomic` | Database engine clause     |
+| `--table-engine`    | `CH_MIGRATIONS_TABLE_ENGINE`    | `MergeTree`     | Migration table engine     |
+| `--timeout`         | `CH_MIGRATIONS_TIMEOUT`         | `30000`         | Request timeout (ms)       |
+| `--ca-cert`         | `CH_MIGRATIONS_CA_CERT`         | -               | CA certificate path        |
+| `--cert`            | `CH_MIGRATIONS_CERT`            | -               | Client certificate path    |
+| `--key`             | `CH_MIGRATIONS_KEY`             | -               | Client key path            |
+| `--abort-divergent` | `CH_MIGRATIONS_ABORT_DIVERGENT` | `true`          | Abort on checksum mismatch |
+| `--create-database` | `CH_MIGRATIONS_CREATE_DATABASE` | `true`          | Auto-create database       |
+
+### Exit Codes
+
+- `0` - Success
+- `1` - Error occurred (check error message)
+
+## Programmatic Usage
+
+You can use `clickhouse-migrations` as a library in your Node.js application:
+
+```typescript
+import { runMigration } from 'clickhouse-migrations';
+
+async function applyMigrations() {
+  try {
+    await runMigration({
+      host: 'http://localhost:8123',
+      username: 'default',
+      password: '',
+      dbName: 'myapp',
+      migrationsHome: './migrations',
+      // Optional parameters
+      timeout: '30000',
+      tableEngine: 'MergeTree',
+      abortDivergent: true,
+      createDatabase: true,
+    });
+    console.log('Migrations applied successfully!');
+  } catch (error) {
+    console.error('Migration failed:', error);
+    process.exit(1);
+  }
+}
+
+applyMigrations();
+```
+
+### TypeScript Types
+
+```typescript
+import type { MigrationRunConfig } from 'clickhouse-migrations';
+
+const config: MigrationRunConfig = {
+  host: 'http://localhost:8123',
+  username: 'default',
+  password: '',
+  dbName: 'myapp',
+  migrationsHome: './migrations',
+  timeout: '30000',
+  dbEngine: 'ENGINE=Atomic',
+  tableEngine: 'MergeTree',
+  abortDivergent: true,
+  createDatabase: true,
+  // TLS options
+  caCert: './certs/ca.pem',
+  cert: './certs/client.crt',
+  key: './certs/client.key',
+};
+```
+
+## Best Practices
+
+### 1. Make Migrations Idempotent
+
+Always use `IF NOT EXISTS` / `IF EXISTS` clauses:
+
+```sql
+-- Good: Idempotent
+CREATE TABLE IF NOT EXISTS users (...);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS email String;
+DROP TABLE IF EXISTS temp_table;
+
+-- Bad: Will fail if run twice
+CREATE TABLE users (...);
+ALTER TABLE users ADD COLUMN email String;
+```
+
+### 2. Never Modify Applied Migrations
+
+Once a migration is applied to production, never modify it. Create a new migration instead:
+
+```sql
+-- migrations/5_fix_users_table.sql
+-- Fixing column type from previous migration
+ALTER TABLE users MODIFY COLUMN age UInt8;
+```
+
+### 3. Test Migrations Locally First
+
+```sh
+# Test on local database first
+clickhouse-migrations migrate \
+  --host=http://localhost:8123 \
+  --db=test_db \
+  --migrations-home=./migrations
+
+# Then apply to production
+clickhouse-migrations migrate \
+  --host=https://prod.example.com:8443 \
+  --db=production_db \
+  --migrations-home=./migrations
+```
+
+### 4. Use Version Control
+
+Commit migration files to git:
+
+```sh
+git add migrations/10_new_feature.sql
+git commit -m "Add migration for new feature"
+```
+
+### 5. Backup Before Major Migrations
+
+```sql
+-- migrations/50_major_refactor.sql
+-- WARNING: This migration performs major schema changes
+-- Ensure database backup exists before applying
+
+-- Create backup table
+CREATE TABLE users_backup AS SELECT * FROM users;
+
+-- Perform migration
+ALTER TABLE users ...;
+
+-- Verify migration
+-- (Manual verification step)
+
+-- Drop backup after verification
+-- DROP TABLE IF EXISTS users_backup;
+```
+
+### 6. Add Comments and Documentation
+
+```sql
+-- migrations/15_add_analytics_tables.sql
+-- Purpose: Add tables for user analytics tracking
+-- Author: Engineering Team
+-- Date: 2024-01-15
+-- Related: JIRA-123
+
+/*
+ * This migration creates:
+ * 1. events table - stores raw event data
+ * 2. events_daily materialized view - aggregated daily stats
+ * 3. events_buffer - buffer table for high-throughput writes
+ */
+
+CREATE TABLE events (...);
+-- ... rest of migration
+```
+
+### 7. Use Transactions Where Possible
+
+Note: ClickHouse has limited transaction support. Group related operations:
+
+```sql
+-- migrations/20_atomic_changes.sql
+-- These operations should succeed or fail together
+
+BEGIN TRANSACTION;  -- Note: Limited support in ClickHouse
+
+CREATE TABLE new_table (...);
+INSERT INTO new_table SELECT * FROM old_table;
+RENAME TABLE old_table TO old_table_backup, new_table TO old_table;
+
+COMMIT;
+```
+
+### 8. Monitor Migration Execution
+
+```sh
+# Run with output
+clickhouse-migrations migrate \
+  --host=http://localhost:8123 \
+  --db=myapp \
+  --migrations-home=./migrations 2>&1 | tee migration.log
+```
+
+### 9. Handle Large Data Migrations
+
+For migrations involving large datasets:
+
+```sql
+-- migrations/25_migrate_large_table.sql
+-- Split large operations into chunks
+
+SET max_execution_time = 0;  -- Disable timeout for this migration
+SET max_memory_usage = 10000000000;  -- 10GB
+
+-- Process in batches
+INSERT INTO new_table
+SELECT * FROM old_table
+WHERE date >= '2024-01-01' AND date < '2024-02-01';
+
+INSERT INTO new_table
+SELECT * FROM old_table
+WHERE date >= '2024-02-01' AND date < '2024-03-01';
+-- ... continue for other months
+```
+
+### 10. Separate Schema and Data Migrations
+
+```sql
+-- migrations/30_schema_changes.sql (fast)
+CREATE TABLE new_feature (...);
+
+-- migrations/31_data_migration.sql (potentially slow)
+INSERT INTO new_feature SELECT ... FROM old_data;
+```
+
+## Troubleshooting
+
+### Migration Already Applied
+
+**Error:** `Migration file shouldn't be changed after apply`
+
+**Cause:** You modified a migration file that was already applied.
+
+**Solution:**
+1. Restore the original migration file
+2. Create a new migration for the changes
+
+### Database Connection Failed
+
+**Error:** `Failed to connect to ClickHouse: ...`
+
+**Solutions:**
+- Check host URL format: `http://hostname:8123` or `https://hostname:8443`
+- Verify network connectivity: `curl http://clickhouse:8123/ping`
+- Check credentials
+- Increase timeout: `--timeout=60000`
+
+### Permission Denied
+
+**Error:** `Can't create the database ...`
+
+**Solution:**
+- Grant CREATE DATABASE permission to user
+- Or use `--create-database=false` and pre-create database
+
+### Timeout Errors
+
+**Error:** `Request timeout`
+
+**Solutions:**
+- Increase timeout: `--timeout=120000` (2 minutes)
+- Optimize slow queries in migration
+- Check ClickHouse server load
+
+### Duplicate Migration Version
+
+**Error:** `Found duplicate migration version X`
+
+**Solution:** Rename one of the migrations with a unique version number
+
+### TLS Certificate Errors
+
+**Error:** `Failed to read TLS certificate files`
+
+**Solutions:**
+- Verify certificate files exist and are readable
+- Check file paths are absolute or relative to execution directory
+- Ensure both `--cert` and `--key` are provided together
+
+### Missing Migration Files
+
+**Error:** `Migration file shouldn't be removed after apply`
+
+**Cause:** A previously applied migration file was deleted.
+
+**Solution:** Restore the deleted migration file from version control.
+
+## Migration Table Structure
+
+The tool automatically creates a `_migrations` table to track applied migrations:
+
+```sql
+CREATE TABLE _migrations (
+  uid UUID DEFAULT generateUUIDv4(),
+  version UInt32,
+  checksum String,
+  migration_name String,
+  applied_at DateTime DEFAULT now()
+)
+ENGINE = MergeTree
+ORDER BY tuple(applied_at);
+```
+
+You can query this table to see migration history:
+
+```sql
+SELECT version, migration_name, applied_at
+FROM _migrations
+ORDER BY version;
+```
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## License
+
+MIT
+
+## Support
+
+- GitHub Issues: [Report issues](https://github.com/VVVi/clickhouse-migrations/issues)
+- NPM Package: [clickhouse-migrations](https://www.npmjs.com/package/clickhouse-migrations)
+
+## Related Projects
+
+- [ClickHouse Official Client](https://github.com/ClickHouse/clickhouse-js)
+- [ClickHouse Documentation](https://clickhouse.com/docs)
