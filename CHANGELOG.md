@@ -1,5 +1,60 @@
 # Changelog
 
+## [1.2.0](https://github.com/VVVi/clickhouse-migrations/compare/v1.1.3...v1.2.0) (2025-11-21)
+
+
+### Features
+
+* **SQL Parser**: rewrite SQL parser with string-aware architecture for robust comment handling
+  - Implement ParserStack and SqlParser classes for reusable, stateful parsing
+  - Add string-aware block comment removal (handles `*/` inside strings)
+  - Add string-aware line comment removal (handles `--`, `#` markers)
+  - Add `splitByDelimiter` utility for proper query/SET extraction
+  - Rename exports to camelCase (`sqlQueries`, `sqlSets`) with backwards-compatible aliases
+
+* **Type Safety**: add type imports for MigrationBase, MigrationsRowData, CliParameters, and QueryError to enhance type safety and clarity in the migration process
+
+* **Boolean Parsing**: introduce `parseBoolean` function to handle boolean parsing for better clarity and consistency in handling CLI arguments and environment variables
+
+* **Documentation**: improve documentation for better user experience
+
+
+### Bug Fixes
+
+* **Security**: implement Identifier type for safe escaping of database name to prevent SQL injection vulnerabilities
+  - Update database creation query to use parameterized query
+
+* **TLS Configuration**: validate TLS configuration to ensure both cert and key are provided together to prevent connection issues
+
+* **Error Messages**: update error messages for clarity and consistency in error handling
+
+
+### Performance Improvements
+
+* **File Operations**: refactor migration handling to use async/await for file operations to improve performance and error handling
+
+
+### Code Refactoring
+
+* **API Design**: replace 13-parameter functions with typed config objects for better maintainability
+  - Add DRY error handling helper
+  - Improve error message consistency
+  - Update tests for new API
+
+* **Code Quality**: improve code quality with camelCase naming and better patterns
+  - Rename all functions and variables from snake_case to camelCase
+  - Extract constants (COLORS, VALIDATION_PATTERNS) for better maintainability
+  - Add `isQueryError` type guard for consistent error handling
+  - Refactor `applyMigrations` into smaller helper functions
+  - Replace sparse array with Map for better performance
+  - Add timeout validation and improve string handling
+  - Maintain backward compatibility via export aliases
+
+
+### Miscellaneous
+
+* **Dependencies**: npm audit fix to address security vulnerabilities
+
 ## [1.1.3](https://github.com/VVVi/clickhouse-migrations/compare/v1.1.2...v1.1.3) (2025-11-21)
 
 

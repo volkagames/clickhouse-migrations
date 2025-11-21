@@ -432,8 +432,7 @@ const runMigration = async (config: MigrationRunConfig): Promise<void> => {
 const migrate = () => {
   const program = new Command();
 
-  const { version: package_version } = JSON.parse(fs.readFileSync(`${__dirname}/../package.json`, 'utf-8'));
-  program.name('clickhouse-migrations').description('ClickHouse migrations.').version(package_version);
+  program.name('clickhouse-migrations').description('ClickHouse migrations.').version("1.2.0");
 
   program
     .command('migrate')
