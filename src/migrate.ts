@@ -1,8 +1,8 @@
-import { type ClickHouseClient, type ClickHouseClientConfigOptions, createClient } from '@clickhouse/client';
-import { Command } from 'commander';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
-import { sql_queries, sql_sets } from './sql-parse';
+import { type ClickHouseClient, type ClickHouseClientConfigOptions, createClient } from '@clickhouse/client';
+import { Command } from 'commander';
+import { sqlSets, sqlQueries } from './sql-parse';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { version } = require('../package.json');
@@ -314,8 +314,8 @@ const apply_migrations = async (
     }
 
     // Extract sql from the migration.
-    const queries = sql_queries(content);
-    const sets = sql_sets(content);
+    const queries = sqlQueries(content);
+    const sets = sqlSets(content);
 
     for (const query of queries) {
       try {
@@ -340,7 +340,13 @@ const apply_migrations = async (
     try {
       await client.insert({
         table: '_migrations',
-        values: [{ version: migration.version, checksum: checksum, migration_name: migration.file }],
+        values: [
+          {
+            version: migration.version,
+            checksum: checksum,
+            migration_name: migration.file,
+          },
+        ],
         format: 'JSONEachRow',
       });
     } catch (e: unknown) {

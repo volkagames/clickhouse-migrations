@@ -1,6 +1,6 @@
 import { describe, it, expect } from '@jest/globals';
 
-import { sql_queries, sql_sets } from '../src/sql-parse';
+import { sqlQueries, sqlSets } from '../src/sql-parse';
 
 describe('Sql query parse', () => {
   beforeEach(() => {
@@ -12,7 +12,7 @@ describe('Sql query parse', () => {
 
     const output = ['SELECT * FROM events'];
 
-    expect(sql_queries(input)).toEqual(output);
+    expect(sqlQueries(input)).toEqual(output);
   });
 
   it('should preserve -- inside string literals (bug fix)', async () => {
@@ -20,7 +20,7 @@ describe('Sql query parse', () => {
 
     const output = ["SELECT '-- not a comment' AS text, name FROM users"];
 
-    expect(sql_queries(input)).toEqual(output);
+    expect(sqlQueries(input)).toEqual(output);
   });
 
   it('should remove inline comments after code (PostgreSQL style)', async () => {
@@ -28,7 +28,7 @@ describe('Sql query parse', () => {
 
     const output = ['SELECT * FROM table', 'SELECT id FROM users'];
 
-    expect(sql_queries(input)).toEqual(output);
+    expect(sqlQueries(input)).toEqual(output);
   });
 
   it('should handle comments with leading whitespace', async () => {
@@ -36,7 +36,7 @@ describe('Sql query parse', () => {
 
     const output = ['SELECT 1'];
 
-    expect(sql_queries(input)).toEqual(output);
+    expect(sqlQueries(input)).toEqual(output);
   });
 
   it('should handle multiple queries with comments', async () => {
@@ -44,7 +44,7 @@ describe('Sql query parse', () => {
 
     const output = ['SELECT * FROM users', 'SELECT * FROM events'];
 
-    expect(sql_queries(input)).toEqual(output);
+    expect(sqlQueries(input)).toEqual(output);
   });
 
   it('should preserve # inside string literals', async () => {
@@ -52,7 +52,7 @@ describe('Sql query parse', () => {
 
     const output = ["SELECT '# not a comment' AS text FROM table"];
 
-    expect(sql_queries(input)).toEqual(output);
+    expect(sqlQueries(input)).toEqual(output);
   });
 
   it('should remove single-line block comment', async () => {
@@ -60,7 +60,7 @@ describe('Sql query parse', () => {
 
     const output = ['SELECT * FROM users'];
 
-    expect(sql_queries(input)).toEqual(output);
+    expect(sqlQueries(input)).toEqual(output);
   });
 
   it('should remove multi-line block comment', async () => {
@@ -73,7 +73,7 @@ FROM orders;`;
 
     const output = ['SELECT order_id, quantity FROM orders'];
 
-    expect(sql_queries(input)).toEqual(output);
+    expect(sqlQueries(input)).toEqual(output);
   });
 
   it('should remove multiple block comments', async () => {
@@ -81,7 +81,7 @@ FROM orders;`;
 
     const output = ['SELECT * FROM users'];
 
-    expect(sql_queries(input)).toEqual(output);
+    expect(sqlQueries(input)).toEqual(output);
   });
 
   it('should handle mixed comment types', async () => {
@@ -95,7 +95,7 @@ SELECT * FROM events;`;
 
     const output = ['SELECT * FROM users', 'SELECT * FROM events'];
 
-    expect(sql_queries(input)).toEqual(output);
+    expect(sqlQueries(input)).toEqual(output);
   });
 
   it('should preserve /* */ inside string literals', async () => {
@@ -103,7 +103,7 @@ SELECT * FROM events;`;
 
     const output = ["SELECT '/* text */' AS comment, name FROM table"];
 
-    expect(sql_queries(input)).toEqual(output);
+    expect(sqlQueries(input)).toEqual(output);
   });
 
   it('should handle PostgreSQL-style inline comments in CREATE TABLE', async () => {
@@ -114,7 +114,7 @@ name TEXT --creating a character type column
 
     const output = ['CREATE TABLE cmt_example( id INT, name TEXT )'];
 
-    expect(sql_queries(input)).toEqual(output);
+    expect(sqlQueries(input)).toEqual(output);
   });
 
   it('should preserve -- inside string literals with inline comments', async () => {
@@ -122,7 +122,7 @@ name TEXT --creating a character type column
 
     const output = ["SELECT '-- not a comment' AS text FROM users"];
 
-    expect(sql_queries(input)).toEqual(output);
+    expect(sqlQueries(input)).toEqual(output);
   });
 
   it('should handle mixed block comments and string literals', async () => {
@@ -130,7 +130,7 @@ name TEXT --creating a character type column
 
     const output = ["SELECT '/* not a comment */' AS text, id FROM users"];
 
-    expect(sql_queries(input)).toEqual(output);
+    expect(sqlQueries(input)).toEqual(output);
   });
 
   it('should preserve escaped quotes inside strings', async () => {
@@ -138,7 +138,129 @@ name TEXT --creating a character type column
 
     const output = ["SELECT 'it\\'s /* a */ test' AS text FROM users"];
 
-    expect(sql_queries(input)).toEqual(output);
+    expect(sqlQueries(input)).toEqual(output);
+  });
+
+  // Bug fix Doubled quotes handling
+  it('should handle doubled single quotes (SQL escape)', async () => {
+    const input = "SELECT 'it''s a test' AS text FROM users;";
+
+    const output = ["SELECT 'it''s a test' AS text FROM users"];
+
+    expect(sqlQueries(input)).toEqual(output);
+  });
+
+  it('should handle doubled double quotes', async () => {
+    const input = 'SELECT "say ""hello""" AS text FROM users;';
+
+    const output = ['SELECT "say ""hello""" AS text FROM users'];
+
+    expect(sqlQueries(input)).toEqual(output);
+  });
+
+  it('should handle multiple doubled quotes in one string', async () => {
+    const input = "SELECT 'don''t say ''no''' AS text FROM users;";
+
+    const output = ["SELECT 'don''t say ''no''' AS text FROM users"];
+
+    expect(sqlQueries(input)).toEqual(output);
+  });
+
+  it('should handle doubled quotes with comments', async () => {
+    const input = "SELECT 'it''s -- not a comment' AS text -- real comment\nFROM users;";
+
+    const output = ["SELECT 'it''s -- not a comment' AS text FROM users"];
+
+    expect(sqlQueries(input)).toEqual(output);
+  });
+
+  // Bug fix Block comments with string literals inside
+  it('should handle /* */ with string literals containing */', async () => {
+    const input = "/* comment with 'string containing */' inside */ SELECT * FROM users;";
+
+    const output = ["SELECT * FROM users"];
+
+    expect(sqlQueries(input)).toEqual(output);
+  });
+
+  it('should handle nested-looking block comments with quotes', async () => {
+    const input = "/* outer comment /* with 'fake */ inside string' */ SELECT id FROM table;";
+
+    const output = ["SELECT id FROM table"];
+
+    expect(sqlQueries(input)).toEqual(output);
+  });
+
+  it('should handle block comment with multiple string literals', async () => {
+    const input = "/* comment 'str1 */' and \"str2 */\" here */ SELECT 1;";
+
+    const output = ["SELECT 1"];
+
+    expect(sqlQueries(input)).toEqual(output);
+  });
+
+  it('should handle complex case: block comment with doubled quotes', async () => {
+    const input = "/* comment with 'don''t stop here */' text */ SELECT 'it''s ok' FROM users;";
+
+    const output = ["SELECT 'it''s ok' FROM users"];
+
+    expect(sqlQueries(input)).toEqual(output);
+  });
+
+  it('should return empty array for null/undefined input', async () => {
+    expect(sqlQueries(null as any)).toEqual([]);
+    expect(sqlQueries(undefined as any)).toEqual([]);
+  });
+
+  it('should return empty array for empty string', async () => {
+    expect(sqlQueries('')).toEqual([]);
+    expect(sqlQueries('   ')).toEqual([]);
+  });
+
+  it('should return empty array for non-string input', async () => {
+    expect(sqlQueries(123 as any)).toEqual([]);
+    expect(sqlQueries({} as any)).toEqual([]);
+    expect(sqlQueries([] as any)).toEqual([]);
+  });
+
+  it('should preserve backticks for ClickHouse identifiers', async () => {
+    const input = "SELECT `column-with-dash` FROM `table-name`;";
+
+    const output = ["SELECT `column-with-dash` FROM `table-name`"];
+
+    expect(sqlQueries(input)).toEqual(output);
+  });
+
+  it('should handle backticks with comments', async () => {
+    const input = "SELECT `field` FROM `db`.`table`; -- comment with `backticks`";
+
+    const output = ["SELECT `field` FROM `db`.`table`"];
+
+    expect(sqlQueries(input)).toEqual(output);
+  });
+
+  it('should handle backticks in block comments', async () => {
+    const input = "/* comment with `identifier` */ SELECT `name` FROM users;";
+
+    const output = ["SELECT `name` FROM users"];
+
+    expect(sqlQueries(input)).toEqual(output);
+  });
+
+  it('should handle mixed quotes and backticks', async () => {
+    const input = "SELECT `col`, 'value', \"text\" FROM `table`;";
+
+    const output = ["SELECT `col`, 'value', \"text\" FROM `table`"];
+
+    expect(sqlQueries(input)).toEqual(output);
+  });
+
+  it('should handle escaped backticks', async () => {
+    const input = "SELECT `column\\`name` FROM users;";
+
+    const output = ["SELECT `column\\`name` FROM users"];
+
+    expect(sqlQueries(input)).toEqual(output);
   });
 });
 
@@ -152,7 +274,7 @@ describe('Sql settings parse', () => {
 
     const output = { allow_experimental_json_type: '1' };
 
-    expect(sql_sets(input)).toEqual(output);
+    expect(sqlSets(input)).toEqual(output);
   });
 
   it('two sets and comments', async () => {
@@ -161,7 +283,7 @@ describe('Sql settings parse', () => {
 
     const output = { allow_experimental_json_type: '1', allow_experimental_object_new: '1' };
 
-    expect(sql_sets(input)).toEqual(output);
+    expect(sqlSets(input)).toEqual(output);
   });
 
   it('set with equals sign in value', async () => {
@@ -169,7 +291,7 @@ describe('Sql settings parse', () => {
 
     const output = { option: 'value=something' };
 
-    expect(sql_sets(input)).toEqual(output);
+    expect(sqlSets(input)).toEqual(output);
   });
 
   it('set without value should be ignored', async () => {
@@ -177,7 +299,7 @@ describe('Sql settings parse', () => {
 
     const output = { valid_option: '1' };
 
-    expect(sql_sets(input)).toEqual(output);
+    expect(sqlSets(input)).toEqual(output);
   });
 
   it('set with quoted value', async () => {
@@ -185,6 +307,22 @@ describe('Sql settings parse', () => {
 
     const output = { string_option: 'sometext', number_option: '123' };
 
-    expect(sql_sets(input)).toEqual(output);
+    expect(sqlSets(input)).toEqual(output);
+  });
+
+  it('should return empty object for null/undefined input', async () => {
+    expect(sqlSets(null as any)).toEqual({});
+    expect(sqlSets(undefined as any)).toEqual({});
+  });
+
+  it('should return empty object for empty string', async () => {
+    expect(sqlSets('')).toEqual({});
+    expect(sqlSets('   ')).toEqual({});
+  });
+
+  it('should return empty object for non-string input', async () => {
+    expect(sqlSets(123 as any)).toEqual({});
+    expect(sqlSets({} as any)).toEqual({});
+    expect(sqlSets([] as any)).toEqual({});
   });
 });
