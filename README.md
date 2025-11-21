@@ -24,6 +24,7 @@
 - [CLI Reference](#cli-reference)
 - [Programmatic Usage](#programmatic-usage)
 - [Best Practices](#best-practices)
+- [Philosophy: Forward-Only Migrations](#philosophy-forward-only-migrations)
 - [Troubleshooting](#troubleshooting)
 
 ## Installation
@@ -512,6 +513,52 @@ CREATE TABLE new_feature (...);
 -- migrations/31_data_migration.sql (potentially slow)
 INSERT INTO new_feature SELECT ... FROM old_data;
 ```
+
+## Philosophy: Forward-Only Migrations
+
+**This tool does not support rollback/downgrade migrations, and never will.**
+
+Our design philosophy is inspired by [Refinery](https://github.com/rust-db/refinery) and early [Flyway](https://flywaydb.org/): migrations are forward-only. To undo or rollback a migration, you must create a new migration that explicitly reverses the changes.
+
+### Why No Rollback?
+
+1. **Explicit is better than implicit** - Writing a new migration forces you to think about what exactly needs to be undone and how to handle data.
+
+2. **Data loss prevention** - Automatic rollbacks often involve dropping tables or columns, which can result in unintended data loss. A forward migration makes this explicit.
+
+3. **Production reality** - In production environments, true rollback is rarely safe or possible:
+   - Data may have been written with the new schema
+   - Other systems may depend on the new schema
+   - Time has passed - you can't simply "undo" data transformations
+
+4. **Version control is the rollback** - Your migration history in git serves as documentation of all schema changes.
+
+### How to "Rollback"
+
+Instead of a rollback feature, create a new forward migration:
+
+```sql
+-- migrations/42_add_user_score.sql
+ALTER TABLE users ADD COLUMN score Int32 DEFAULT 0;
+
+-- migrations/43_remove_user_score.sql  (the "rollback")
+-- Removing score column added in migration 42
+ALTER TABLE users DROP COLUMN IF EXISTS score;
+```
+
+This approach:
+- Creates a clear audit trail
+- Forces explicit handling of data
+- Works the same in all environments
+- Prevents accidents
+
+### When You Need to Undo Changes
+
+1. **Development**: Use `--abort-divergent=false` to modify migrations locally
+2. **Staging/Production**: Always create a new forward migration
+3. **Emergency**: Create a new migration that reverts changes, test it, then apply
+
+This is not a limitation - it's a design decision that leads to safer, more maintainable database evolution.
 
 ## Troubleshooting
 
