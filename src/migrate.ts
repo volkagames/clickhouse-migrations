@@ -167,12 +167,16 @@ const get_migrations = (migrations_home: string): { version: number; file: strin
       return;
     }
 
-    const version = Number(file.split('_')[0]);
+    const versionString = file.split('_')[0];
+    const version = parseInt(versionString, 10);
 
-    if (!version) {
+    // Check if version is a valid non-negative integer
+    // parseInt returns NaN for invalid input, and we need to ensure it's an integer
+    // We allow leading zeros (e.g., 000_init.sql is valid and treated as version 0)
+    if (Number.isNaN(version) || version < 0 || !Number.isInteger(version) || !/^\d+$/.test(versionString)) {
       log(
         'error',
-        `a migration name should start from number, example: 1_init.sql. Please check, if the migration ${file} is named correctly`,
+        `a migration name should start from a non-negative integer, example: 0_init.sql or 1_init.sql. Please check, if the migration ${file} is named correctly`,
       );
       process.exit(1);
     }
@@ -189,6 +193,18 @@ const get_migrations = (migrations_home: string): { version: number; file: strin
 
   // Order by version.
   migrations.sort((m1, m2) => m1.version - m2.version);
+
+  // Check for duplicate versions. Since `migrations` is already sorted by version,
+  // it's sufficient to check adjacent entries
+  for (let i = 1; i < migrations.length; i++) {
+    if (migrations[i].version === migrations[i - 1].version) {
+      log(
+        'error',
+        `Found duplicate migration version ${migrations[i].version}: ${migrations[i - 1].file}, ${migrations[i].file}`,
+      );
+      process.exit(1);
+    }
+  }
 
   return migrations;
 };
