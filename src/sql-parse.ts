@@ -1,7 +1,12 @@
+// Remove SQL comments from content
+// Supports: -- single line, # single line, #! shebang
+const removeComments = (content: string): string => {
+  return content.replace(/(--|#!|#\s?).*(\n|\r\n|\r|$)/gm, '\n');
+};
+
 // Extract sql queries from migrations.
 const sql_queries = (content: string): string[] => {
-  const queries = content
-    .replace(/(--|#!|#\s).*(\n|\r\n|\r|$)/gm, '\n')
+  const queries = removeComments(content)
     .replace(/^\s*(SET\s).*(\n|\r\n|\r|$)/gm, '')
     .replace(/(\n|\r\n|\r)/gm, ' ')
     .replace(/\s+/g, ' ')
@@ -16,8 +21,7 @@ const sql_queries = (content: string): string[] => {
 const sql_sets = (content: string) => {
   const sets: { [key: string]: string | number } = {};
 
-  const sets_arr = content
-    .replace(/(--|#!|#\s).*(\n|\r\n|\r|$)/gm, '\n')
+  const sets_arr = removeComments(content)
     .replace(/^\s*(?!SET\s).*(\n|\r\n|\r|$)/gm, '')
     .replace(/^\s*(SET\s)/gm, '')
     .replace(/(\n|\r\n|\r)/gm, ' ')
