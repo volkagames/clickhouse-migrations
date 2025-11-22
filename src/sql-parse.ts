@@ -78,8 +78,7 @@ const removeBlockComments = (content: string): string => {
 
   try {
     for (let i = 0; i < content.length; i++) {
-      const char = content[i];
-      if (char === undefined) continue;
+      const char = content[i]!;
       const inString = parser.processChar(char, content, i);
 
       if (inString) {
@@ -93,8 +92,7 @@ const removeBlockComments = (content: string): string => {
 
         try {
           while (j < content.length) {
-            const jChar = content[j];
-            if (jChar === undefined) break;
+            const jChar = content[j]!;
             commentParser.processChar(jChar, content, j);
 
             if (!commentParser.isInString() && jChar === '*' && content[j + 1] === '/') {
@@ -105,11 +103,12 @@ const removeBlockComments = (content: string): string => {
           }
 
           if (j >= content.length) {
-            break; // Unterminated comment
+            throw new Error('Unterminated block comment in SQL');
           }
         } finally {
           parserStack.release(commentParser);
         }
+        result += ' ';
         continue;
       }
 
@@ -134,8 +133,7 @@ const removeLineComments = (content: string): string => {
         let result = '';
 
         for (let i = 0; i < line.length; i++) {
-          const char = line[i];
-          if (char === undefined) continue;
+          const char = line[i]!;
           const inString = parser.processChar(char, line, i);
 
           if (inString) {
@@ -171,8 +169,7 @@ const splitByDelimiter = (content: string, delimiter: string): string[] => {
 
   try {
     for (let i = 0; i < content.length; i++) {
-      const char = content[i];
-      if (char === undefined) continue;
+      const char = content[i]!;
       const inString = parser.processChar(char, content, i);
 
       if (inString) {
@@ -241,8 +238,7 @@ const sqlSets = (content: string): Record<string, string> => {
       let eqIndex = -1;
 
       for (let i = 0; i < part.length; i++) {
-        const char = part[i];
-        if (char === undefined) continue;
+        const char = part[i]!;
         const inString = parser.processChar(char, part, i);
 
         if (!inString && char === '=') {

@@ -262,6 +262,47 @@ name TEXT --creating a character type column
 
     expect(sqlQueries(input)).toEqual(output);
   });
+
+  // Bug fix #1: Unterminated block comment should throw error
+  it('should throw error for unterminated block comment', async () => {
+    const input = "SELECT * FROM users; /* unterminated comment";
+
+    expect(() => sqlQueries(input)).toThrow('Unterminated block comment in SQL');
+  });
+
+  it('should throw error for unterminated block comment with string inside', async () => {
+    const input = "SELECT * FROM users; /* comment with 'string' but no end";
+
+    expect(() => sqlQueries(input)).toThrow('Unterminated block comment in SQL');
+  });
+
+  // Bug fix #2: Whitespace preservation when removing block comments
+  it('should preserve whitespace when removing inline block comment', async () => {
+    const input = "SELECT/*comment*/column FROM table;";
+
+    const output = ["SELECT column FROM table"];
+
+    expect(sqlQueries(input)).toEqual(output);
+  });
+
+  it('should preserve whitespace when removing multiple inline block comments', async () => {
+    const input = "SELECT/*c1*/id,/*c2*/name/*c3*/FROM/*c4*/users;";
+
+    const output = ["SELECT id, name FROM users"];
+
+    expect(sqlQueries(input)).toEqual(output);
+  });
+
+  it('should not create double spaces when block comment is between spaces', async () => {
+    const input = "SELECT /* comment */ column FROM table;";
+
+    // The comment is replaced with a space, but surrounding spaces remain
+    // This results in proper spacing: "SELECT  column FROM table"
+    // which after .replace(/\s+/g, ' ') becomes "SELECT column FROM table"
+    const output = ["SELECT column FROM table"];
+
+    expect(sqlQueries(input)).toEqual(output);
+  });
 });
 
 describe('Sql settings parse', () => {
