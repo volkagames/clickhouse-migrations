@@ -703,4 +703,4 @@ const migrate = () => {
   program.parse();
 };
 
-export { migrate, runMigration, getMigrationStatus };
+export { migrate, runMigration, getMigrationStatus, displayMigrationStatus };
