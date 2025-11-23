@@ -1,5 +1,4 @@
 import crypto from 'node:crypto'
-import fs from 'node:fs'
 import { readdir, readFile } from 'node:fs/promises'
 import { type ClickHouseClient, type ClickHouseClientConfigOptions, createClient } from '@clickhouse/client'
 import { setupConnectionConfig } from './dsn-parser'
@@ -93,7 +92,7 @@ const sanitizeErrorMessage = (message: string): string => {
   return sanitized
 }
 
-const connect = (config: ConnectionConfig & { host: string }): ClickHouseClient => {
+const connect = async (config: ConnectionConfig & { host: string }): Promise<ClickHouseClient> => {
   const dbParams: ClickHouseClientConfigOptions = {
     url: config.host,
     application: 'clickhouse-migrations',
@@ -130,13 +129,13 @@ const connect = (config: ConnectionConfig & { host: string }): ClickHouseClient 
     try {
       if (config.cert && config.key) {
         dbParams.tls = {
-          ca_cert: fs.readFileSync(config.caCert),
-          cert: fs.readFileSync(config.cert),
-          key: fs.readFileSync(config.key),
+          ca_cert: await readFile(config.caCert),
+          cert: await readFile(config.cert),
+          key: await readFile(config.key),
         }
       } else {
         dbParams.tls = {
-          ca_cert: fs.readFileSync(config.caCert),
+          ca_cert: await readFile(config.caCert),
         }
       }
     } catch (e: unknown) {
@@ -148,7 +147,7 @@ const connect = (config: ConnectionConfig & { host: string }): ClickHouseClient 
 
 const createDb = async (config: CreateDbConfig): Promise<void> => {
   // Connect without DB name to create it
-  const client = connect({
+  const client = await connect({
     host: config.host,
     username: config.username,
     password: config.password,
@@ -470,7 +469,7 @@ const runMigration = async (config: MigrationRunConfig): Promise<void> => {
     })
   }
 
-  const client = connect({
+  const client = await connect({
     host,
     username,
     password,
@@ -518,7 +517,7 @@ const getMigrationStatus = async (config: MigrationStatusConfig): Promise<Migrat
 
   const migrations = await getMigrations(config.migrationsHome)
 
-  const client = connect({
+  const client = await connect({
     host,
     username,
     password,
