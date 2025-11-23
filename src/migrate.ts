@@ -216,6 +216,7 @@ const createDb = async (config: CreateDbConfig): Promise<void> => {
   try {
     await client.ping()
   } catch (e: unknown) {
+    await client.close()
     throw new Error(`Failed to connect to ClickHouse: ${sanitizeErrorMessage(getErrorMessage(e))}`)
   }
 
@@ -252,6 +253,7 @@ const createDb = async (config: CreateDbConfig): Promise<void> => {
       },
     })
   } catch (e: unknown) {
+    await client.close()
     throw new Error(`Can't create the database ${config.dbName}: ${sanitizeErrorMessage(getErrorMessage(e))}`)
   }
 
@@ -550,11 +552,16 @@ const runMigration = async (config: MigrationRunConfig): Promise<void> => {
     throw new Error(`Failed to connect to ClickHouse at ${host}: ${sanitizeErrorMessage(getErrorMessage(e))}`)
   }
 
-  await initMigrationTable(client, config.tableEngine || DEFAULT_TABLE_ENGINE)
+  try {
+    await initMigrationTable(client, config.tableEngine || DEFAULT_TABLE_ENGINE)
 
-  const settings = { ...conn.settings, ...(config.settings || {}) }
+    const settings = { ...conn.settings, ...(config.settings || {}) }
 
-  await applyMigrations(client, migrations, config.migrationsHome, config.abortDivergent ?? true, settings)
+    await applyMigrations(client, migrations, config.migrationsHome, config.abortDivergent ?? true, settings)
+  } catch (e: unknown) {
+    await client.close()
+    throw e
+  }
 
   await client.close()
 }
