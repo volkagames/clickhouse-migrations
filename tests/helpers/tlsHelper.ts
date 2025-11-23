@@ -1,4 +1,4 @@
-import path from 'node:path';
+import * as path from 'node:path';
 
 /**
  * Get paths to TLS certificate fixtures

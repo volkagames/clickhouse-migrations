@@ -1,5 +1,5 @@
 import { exec, type ExecException, type ExecOptions as NodeExecOptions } from 'node:child_process'
-import path from 'node:path'
+import * as path from 'node:path'
 import { promisify } from 'node:util'
 
 const execAsync = promisify(exec)

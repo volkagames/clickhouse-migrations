@@ -1,6 +1,11 @@
 import { vi } from 'vitest'
 
 /**
+ * Type representing the return value of createMockClickHouseClient
+ */
+export type MockClickHouseClient = ReturnType<typeof createMockClickHouseClient>
+
+/**
  * Creates a mock ClickHouse client with all necessary methods mocked.
  * This provides a consistent mock structure across all integration tests.
  *

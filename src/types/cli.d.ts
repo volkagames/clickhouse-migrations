@@ -21,7 +21,7 @@ export type CliParameters = {
   db?: string
   dbEngine?: string
   tableEngine?: string
-  timeout?: string | number | duration
+  timeout?: string | number
   caCert?: string
   cert?: string
   key?: string
@@ -44,7 +44,7 @@ export type ConnectionConfig = {
   username?: string
   password?: string
   dbName?: string
-  timeout?: string | number | duration
+  timeout?: string | number
 } & TlsConfig
 
 export type CreateDbConfig = {

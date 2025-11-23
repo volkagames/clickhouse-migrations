@@ -14,7 +14,11 @@ describe('Divergent migration tests with abort_divergent flag', () => {
   let consoleSpy: ReturnType<typeof setupConsoleSpy>
 
   beforeEach(() => {
-    setupIntegrationTest({ mockQuery, mockExec, mockInsert, mockClose })
+    setupIntegrationTest({
+      mockQuery, mockExec, mockInsert, mockClose,
+      mockClient: undefined,
+      mockPing: undefined
+    })
     consoleSpy = setupConsoleSpy()
 
     // Additional mock for ping

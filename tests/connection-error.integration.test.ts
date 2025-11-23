@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { getMigrationStatus, runMigration } from '../src/migrate'
-import { TIMEOUT_5_SECONDS } from './helpers/testConstants'
+import { MIGRATION_TIMEOUT } from './helpers/testConstants'
 
 describe('Connection Error Handling', () => {
   describe('runMigration', () => {
@@ -9,7 +9,7 @@ describe('Connection Error Handling', () => {
         runMigration({
           host: 'http://non-existent-host-12345.invalid:8123',
           migrationsHome: './tests/migrations/one',
-          timeout: TIMEOUT_5_SECONDS,
+          timeout: MIGRATION_TIMEOUT,
           createDatabase: false,
         }),
       ).rejects.toThrow(/getaddrinfo|ENOTFOUND|EAI_AGAIN|network|connection/i)
@@ -20,7 +20,7 @@ describe('Connection Error Handling', () => {
         runMigration({
           host: 'http://localhost:9999',
           migrationsHome: './tests/migrations/one',
-          timeout: TIMEOUT_5_SECONDS,
+          timeout: MIGRATION_TIMEOUT,
           createDatabase: false,
         }),
       ).rejects.toThrow(/ECONNREFUSED|connection refused|connect/i)
@@ -31,7 +31,7 @@ describe('Connection Error Handling', () => {
         runMigration({
           dsn: 'clickhouse://user:pass@non-existent-host-12345.invalid:8123/db',
           migrationsHome: './tests/migrations/one',
-          timeout: TIMEOUT_5_SECONDS,
+          timeout: MIGRATION_TIMEOUT,
           createDatabase: false,
         }),
       ).rejects.toThrow(/getaddrinfo|ENOTFOUND|EAI_AGAIN|network|connection/i)
@@ -44,7 +44,7 @@ describe('Connection Error Handling', () => {
           username: 'invalid_user',
           password: 'invalid_password',
           migrationsHome: './tests/migrations/one',
-          timeout: TIMEOUT_5_SECONDS,
+          timeout: MIGRATION_TIMEOUT,
           createDatabase: false,
         }),
       ).rejects.toThrow(/authentication|auth|credentials|unauthorized|403/i)
@@ -57,7 +57,7 @@ describe('Connection Error Handling', () => {
         getMigrationStatus({
           host: 'http://non-existent-host-12345.invalid:8123',
           migrationsHome: './tests/migrations/one',
-          timeout: TIMEOUT_5_SECONDS,
+          timeout: MIGRATION_TIMEOUT,
         }),
       ).rejects.toThrow(/getaddrinfo|ENOTFOUND|EAI_AGAIN|network|connection/i)
     })
@@ -67,7 +67,7 @@ describe('Connection Error Handling', () => {
         getMigrationStatus({
           host: 'http://localhost:9999',
           migrationsHome: './tests/migrations/one',
-          timeout: TIMEOUT_5_SECONDS,
+          timeout: MIGRATION_TIMEOUT,
         }),
       ).rejects.toThrow(/ECONNREFUSED|connection refused|connect/i)
     })
@@ -77,7 +77,7 @@ describe('Connection Error Handling', () => {
         getMigrationStatus({
           dsn: 'clickhouse://user:pass@non-existent-host-12345.invalid:8123/db',
           migrationsHome: './tests/migrations/one',
-          timeout: TIMEOUT_5_SECONDS,
+          timeout: MIGRATION_TIMEOUT,
         }),
       ).rejects.toThrow(/getaddrinfo|ENOTFOUND|EAI_AGAIN|network|connection/i)
     })
@@ -89,7 +89,7 @@ describe('Connection Error Handling', () => {
           username: 'invalid_user',
           password: 'invalid_password',
           migrationsHome: './tests/migrations/one',
-          timeout: TIMEOUT_5_SECONDS,
+          timeout: MIGRATION_TIMEOUT,
         }),
       ).rejects.toThrow(/authentication|auth|credentials|unauthorized|403/i)
     })

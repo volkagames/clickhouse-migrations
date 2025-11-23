@@ -1,4 +1,4 @@
-import crypto from 'node:crypto'
+import * as crypto from 'node:crypto'
 import { readdir, readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { type ClickHouseClient, type ClickHouseClientConfigOptions, createClient } from '@clickhouse/client'
