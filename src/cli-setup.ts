@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { Command } from 'commander'
-import { getLogger } from './logger'
+import { configureLogger, getLogger, type LogFormat, type MinLogLevel } from './logger'
 import { displayMigrationStatus, getMigrationStatus, runMigration } from './migrate'
 
 export type CliParameters = {
@@ -19,6 +19,9 @@ export type CliParameters = {
   key?: string
   abortDivergent?: boolean | string
   createDatabase?: boolean | string
+  logFormat?: LogFormat
+  logLevel?: MinLogLevel
+  logPrefix?: string
 }
 
 // Parses CLI/env booleans: handles 'false', '0', 'no', 'off', 'n' as false
@@ -99,8 +102,24 @@ export const setupCli = (): Command => {
       'Create database if it does not exist (default: true)',
       process.env.CH_MIGRATIONS_CREATE_DATABASE,
     )
+    .option(
+      '--log-format <format>',
+      'Log output format: console or json (default: console)',
+      process.env.CH_MIGRATIONS_LOG_FORMAT,
+    )
+    .option(
+      '--log-level <level>',
+      'Minimum log level: debug, info, warn, error (default: info)',
+      process.env.CH_MIGRATIONS_LOG_LEVEL,
+    )
+    .option(
+      '--log-prefix <prefix>',
+      'Log component/prefix name (default: clickhouse-migrations)',
+      process.env.CH_MIGRATIONS_LOG_PREFIX,
+    )
     .action(async (options: CliParameters) => {
       try {
+        configureLogger({ format: options.logFormat, minLevel: options.logLevel, prefix: options.logPrefix })
         await runMigration({
           migrationsHome: options.migrationsHome,
           dsn: options.dsn,
@@ -149,8 +168,24 @@ export const setupCli = (): Command => {
     .option('--ca-cert <path>', 'CA certificate file path', process.env.CH_MIGRATIONS_CA_CERT)
     .option('--cert <path>', 'Client certificate file path', process.env.CH_MIGRATIONS_CERT)
     .option('--key <path>', 'Client key file path', process.env.CH_MIGRATIONS_KEY)
+    .option(
+      '--log-format <format>',
+      'Log output format: console or json (default: console)',
+      process.env.CH_MIGRATIONS_LOG_FORMAT,
+    )
+    .option(
+      '--log-level <level>',
+      'Minimum log level: debug, info, warn, error (default: info)',
+      process.env.CH_MIGRATIONS_LOG_LEVEL,
+    )
+    .option(
+      '--log-prefix <prefix>',
+      'Log component/prefix name (default: clickhouse-migrations)',
+      process.env.CH_MIGRATIONS_LOG_PREFIX,
+    )
     .action(async (options: CliParameters) => {
       try {
+        configureLogger({ format: options.logFormat, minLevel: options.logLevel, prefix: options.logPrefix })
         const statusList = await getMigrationStatus({
           migrationsHome: options.migrationsHome,
           dsn: options.dsn,

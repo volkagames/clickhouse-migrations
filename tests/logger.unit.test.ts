@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { COLORS, getLogger, type Logger, resetLogger, setLogger } from '../src/logger'
+import { COLORS, configureLogger, createLogger, getLogger, type Logger, resetLogger, setLogger } from '../src/logger'
 import { cleanupTest, setupConsoleSpy } from './helpers/testSetup'
 
 describe('Logger Module', () => {
@@ -110,19 +110,28 @@ describe('Logger Module', () => {
     })
 
     describe('log()', () => {
-      it('should log plain messages without formatting', () => {
+      it('should log plain messages without formatting when minLevel is debug', () => {
+        configureLogger({ format: 'console', minLevel: 'debug' })
         const logger = getLogger()
         logger.log('Plain log message')
 
         expect(consoleSpy.consoleLogSpy).toHaveBeenCalledWith('Plain log message')
       })
 
-      it('should preserve color codes in message', () => {
+      it('should preserve color codes in message when minLevel is debug', () => {
+        configureLogger({ format: 'console', minLevel: 'debug' })
         const logger = getLogger()
         const coloredMessage = `${COLORS.GREEN}Colored${COLORS.RESET} message`
         logger.log(coloredMessage)
 
         expect(consoleSpy.consoleLogSpy).toHaveBeenCalledWith(coloredMessage)
+      })
+
+      it('should not log when minLevel is info (default)', () => {
+        const logger = getLogger()
+        logger.log('Should not appear')
+
+        expect(consoleSpy.consoleLogSpy).not.toHaveBeenCalled()
       })
     })
   })
@@ -214,7 +223,7 @@ describe('Logger Module', () => {
       logger.success('Message 4')
       logger.log('Message 5')
 
-      expect(consoleSpy.consoleLogSpy).toHaveBeenCalledTimes(4) // info, warn, success, log
+      expect(consoleSpy.consoleLogSpy).toHaveBeenCalledTimes(3) // info, warn, success (log is filtered by default)
       expect(consoleSpy.consoleErrorSpy).toHaveBeenCalledTimes(1) // error
     })
 
@@ -281,6 +290,356 @@ describe('Logger Module', () => {
       resetLogger()
       getLogger().info('default 2')
       expect(consoleSpy.consoleLogSpy).toHaveBeenCalledTimes(2) // Now 2
+    })
+  })
+
+  describe('JSON Logger', () => {
+    beforeEach(() => {
+      configureLogger({ format: 'json' })
+    })
+
+    describe('info()', () => {
+      it('should log info messages as JSON with INFO severity', () => {
+        const logger = getLogger()
+        logger.info('Test info message')
+
+        expect(consoleSpy.consoleLogSpy).toHaveBeenCalledTimes(1)
+        const logOutput = consoleSpy.consoleLogSpy.mock.calls[0][0]
+        const parsed = JSON.parse(logOutput)
+
+        expect(parsed).toMatchObject({
+          severity: 'INFO',
+          message: 'Test info message',
+          component: 'clickhouse-migrations',
+        })
+        expect(parsed.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/)
+      })
+    })
+
+    describe('error()', () => {
+      it('should log error messages as JSON with ERROR severity', () => {
+        const logger = getLogger()
+        logger.error('Test error message')
+
+        expect(consoleSpy.consoleLogSpy).toHaveBeenCalledTimes(1)
+        const logOutput = consoleSpy.consoleLogSpy.mock.calls[0][0]
+        const parsed = JSON.parse(logOutput)
+
+        expect(parsed).toMatchObject({
+          severity: 'ERROR',
+          message: 'Test error message',
+          component: 'clickhouse-migrations',
+        })
+        expect(parsed.details).toBeUndefined()
+      })
+
+      it('should include details field when error details provided', () => {
+        const logger = getLogger()
+        logger.error('Test error', 'Error details here')
+
+        const logOutput = consoleSpy.consoleLogSpy.mock.calls[0][0]
+        const parsed = JSON.parse(logOutput)
+
+        expect(parsed).toMatchObject({
+          severity: 'ERROR',
+          message: 'Test error',
+          details: 'Error details here',
+          component: 'clickhouse-migrations',
+        })
+      })
+    })
+
+    describe('warn()', () => {
+      it('should log warning messages as JSON with WARNING severity', () => {
+        const logger = getLogger()
+        logger.warn('Test warning message')
+
+        const logOutput = consoleSpy.consoleLogSpy.mock.calls[0][0]
+        const parsed = JSON.parse(logOutput)
+
+        expect(parsed).toMatchObject({
+          severity: 'WARNING',
+          message: 'Test warning message',
+          component: 'clickhouse-migrations',
+        })
+      })
+    })
+
+    describe('success()', () => {
+      it('should log success messages as JSON with NOTICE severity', () => {
+        const logger = getLogger()
+        logger.success('Operation completed')
+
+        const logOutput = consoleSpy.consoleLogSpy.mock.calls[0][0]
+        const parsed = JSON.parse(logOutput)
+
+        expect(parsed).toMatchObject({
+          severity: 'NOTICE',
+          message: 'Operation completed',
+          component: 'clickhouse-migrations',
+        })
+      })
+    })
+
+    describe('log()', () => {
+      it('should log plain messages as JSON with DEFAULT severity', () => {
+        configureLogger({ format: 'json', minLevel: 'debug' })
+        const logger = getLogger()
+        logger.log('Plain log message')
+
+        const logOutput = consoleSpy.consoleLogSpy.mock.calls[0][0]
+        const parsed = JSON.parse(logOutput)
+
+        expect(parsed).toMatchObject({
+          severity: 'DEFAULT',
+          message: 'Plain log message',
+          component: 'clickhouse-migrations',
+        })
+      })
+    })
+
+    it('should handle special characters and escape them properly in JSON', () => {
+      const logger = getLogger()
+      const specialMessage = 'Message with "quotes" and \n newline \t tab'
+      logger.info(specialMessage)
+
+      const logOutput = consoleSpy.consoleLogSpy.mock.calls[0][0]
+      const parsed = JSON.parse(logOutput)
+
+      expect(parsed.message).toBe(specialMessage)
+    })
+
+    it('should use custom prefix when provided', () => {
+      configureLogger({ format: 'json', prefix: 'custom-app' })
+      const logger = getLogger()
+      logger.info('Test message')
+
+      const logOutput = consoleSpy.consoleLogSpy.mock.calls[0][0]
+      const parsed = JSON.parse(logOutput)
+
+      expect(parsed.component).toBe('custom-app')
+    })
+  })
+
+  describe('Log Level Filtering - Console Logger', () => {
+    it('should filter logs below minimum level (minLevel: error)', () => {
+      configureLogger({ format: 'console', minLevel: 'error' })
+      const logger = getLogger()
+
+      logger.info('info message')
+      logger.warn('warn message')
+      logger.success('success message')
+      logger.error('error message')
+
+      // Only error should be logged
+      expect(consoleSpy.consoleLogSpy).toHaveBeenCalledTimes(0)
+      expect(consoleSpy.consoleErrorSpy).toHaveBeenCalledTimes(1)
+    })
+
+    it('should filter logs below minimum level (minLevel: warn)', () => {
+      configureLogger({ format: 'console', minLevel: 'warn' })
+      const logger = getLogger()
+
+      logger.info('info message')
+      logger.warn('warn message')
+      logger.success('success message')
+      logger.error('error message')
+
+      // warn and error should be logged (success is treated as info level)
+      expect(consoleSpy.consoleLogSpy).toHaveBeenCalledTimes(1) // warn
+      expect(consoleSpy.consoleErrorSpy).toHaveBeenCalledTimes(1) // error
+    })
+
+    it('should log all messages when minLevel is debug', () => {
+      configureLogger({ format: 'console', minLevel: 'debug' })
+      const logger = getLogger()
+
+      logger.log('log message')
+      logger.info('info message')
+      logger.warn('warn message')
+      logger.error('error message')
+
+      expect(consoleSpy.consoleLogSpy).toHaveBeenCalledTimes(3) // log, info, warn
+      expect(consoleSpy.consoleErrorSpy).toHaveBeenCalledTimes(1) // error
+    })
+
+    it('should use info as default minimum level', () => {
+      configureLogger({ format: 'console' }) // no minLevel specified
+      const logger = getLogger()
+
+      logger.log('log message') // debug level, should not appear
+      logger.info('info message')
+      logger.warn('warn message')
+
+      expect(consoleSpy.consoleLogSpy).toHaveBeenCalledTimes(2) // info, warn (no log)
+    })
+  })
+
+  describe('Log Level Filtering - JSON Logger', () => {
+    it('should filter logs below minimum level (minLevel: error)', () => {
+      configureLogger({ format: 'json', minLevel: 'error' })
+      const logger = getLogger()
+
+      logger.info('info message')
+      logger.warn('warn message')
+      logger.success('success message')
+      logger.error('error message')
+
+      // Only error should be logged
+      expect(consoleSpy.consoleLogSpy).toHaveBeenCalledTimes(1)
+      const parsed = JSON.parse(consoleSpy.consoleLogSpy.mock.calls[0][0])
+      expect(parsed.severity).toBe('ERROR')
+    })
+
+    it('should filter logs below minimum level (minLevel: warn)', () => {
+      configureLogger({ format: 'json', minLevel: 'warn' })
+      const logger = getLogger()
+
+      logger.info('info message')
+      logger.warn('warn message')
+      logger.error('error message')
+
+      // warn and error should be logged
+      expect(consoleSpy.consoleLogSpy).toHaveBeenCalledTimes(2)
+      const parsed1 = JSON.parse(consoleSpy.consoleLogSpy.mock.calls[0][0])
+      const parsed2 = JSON.parse(consoleSpy.consoleLogSpy.mock.calls[1][0])
+      expect(parsed1.severity).toBe('WARNING')
+      expect(parsed2.severity).toBe('ERROR')
+    })
+
+    it('should log all messages when minLevel is debug', () => {
+      configureLogger({ format: 'json', minLevel: 'debug' })
+      const logger = getLogger()
+
+      logger.log('log message')
+      logger.info('info message')
+      logger.warn('warn message')
+      logger.error('error message')
+
+      expect(consoleSpy.consoleLogSpy).toHaveBeenCalledTimes(4)
+      const severities = consoleSpy.consoleLogSpy.mock.calls.map((call) => JSON.parse(call[0]).severity)
+      expect(severities).toEqual(['DEFAULT', 'INFO', 'WARNING', 'ERROR'])
+    })
+  })
+
+  describe('createLogger()', () => {
+    it('should create console logger by default', () => {
+      const logger = createLogger()
+      setLogger(logger)
+      getLogger().info('test')
+
+      expect(consoleSpy.consoleLogSpy).toHaveBeenCalledWith(
+        COLORS.CYAN,
+        'clickhouse-migrations :',
+        COLORS.RESET,
+        'test',
+      )
+    })
+
+    it('should create JSON logger when format is json', () => {
+      const logger = createLogger({ format: 'json' })
+      setLogger(logger)
+      getLogger().info('test')
+
+      const logOutput = consoleSpy.consoleLogSpy.mock.calls[0][0]
+      const parsed = JSON.parse(logOutput)
+      expect(parsed.severity).toBe('INFO')
+    })
+
+    it('should use custom prefix', () => {
+      const logger = createLogger({ format: 'json', prefix: 'my-app' })
+      setLogger(logger)
+      getLogger().info('test')
+
+      const logOutput = consoleSpy.consoleLogSpy.mock.calls[0][0]
+      const parsed = JSON.parse(logOutput)
+      expect(parsed.component).toBe('my-app')
+    })
+
+    it('should apply minimum log level', () => {
+      const logger = createLogger({ format: 'console', minLevel: 'error' })
+      setLogger(logger)
+      getLogger().info('test info')
+      getLogger().error('test error')
+
+      expect(consoleSpy.consoleLogSpy).toHaveBeenCalledTimes(0)
+      expect(consoleSpy.consoleErrorSpy).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  describe('configureLogger()', () => {
+    it('should configure the global logger instance', () => {
+      configureLogger({ format: 'json' })
+      const logger = getLogger()
+      logger.info('test')
+
+      const logOutput = consoleSpy.consoleLogSpy.mock.calls[0][0]
+      const parsed = JSON.parse(logOutput)
+      expect(parsed.severity).toBe('INFO')
+    })
+
+    it('should replace previous configuration', () => {
+      configureLogger({ format: 'json' })
+      getLogger().info('json message')
+
+      configureLogger({ format: 'console' })
+      getLogger().info('console message')
+
+      expect(consoleSpy.consoleLogSpy).toHaveBeenCalledTimes(2)
+      // First call is JSON
+      const firstCall = consoleSpy.consoleLogSpy.mock.calls[0][0]
+      expect(() => JSON.parse(firstCall)).not.toThrow()
+
+      // Second call is console format (multiple arguments)
+      expect(consoleSpy.consoleLogSpy.mock.calls[1]).toEqual([
+        COLORS.CYAN,
+        'clickhouse-migrations :',
+        COLORS.RESET,
+        'console message',
+      ])
+    })
+  })
+
+  describe('Integration: Format and Level combinations', () => {
+    it('should work with console format and warn level', () => {
+      configureLogger({ format: 'console', minLevel: 'warn' })
+      const logger = getLogger()
+
+      logger.info('should not appear')
+      logger.warn('should appear')
+      logger.error('should also appear')
+
+      expect(consoleSpy.consoleLogSpy).toHaveBeenCalledTimes(1)
+      expect(consoleSpy.consoleErrorSpy).toHaveBeenCalledTimes(1)
+    })
+
+    it('should work with json format and debug level', () => {
+      configureLogger({ format: 'json', minLevel: 'debug' })
+      const logger = getLogger()
+
+      logger.log('debug message')
+      logger.info('info message')
+
+      expect(consoleSpy.consoleLogSpy).toHaveBeenCalledTimes(2)
+      const severities = consoleSpy.consoleLogSpy.mock.calls.map((call) => JSON.parse(call[0]).severity)
+      expect(severities).toEqual(['DEFAULT', 'INFO'])
+    })
+
+    it('should work with custom prefix, json format, and error level', () => {
+      configureLogger({ format: 'json', minLevel: 'error', prefix: 'test-app' })
+      const logger = getLogger()
+
+      logger.info('should not appear')
+      logger.warn('should not appear')
+      logger.error('should appear')
+
+      expect(consoleSpy.consoleLogSpy).toHaveBeenCalledTimes(1)
+      const parsed = JSON.parse(consoleSpy.consoleLogSpy.mock.calls[0][0])
+      expect(parsed).toMatchObject({
+        severity: 'ERROR',
+        message: 'should appear',
+        component: 'test-app',
+      })
     })
   })
 })

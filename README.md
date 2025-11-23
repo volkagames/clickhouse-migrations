@@ -12,6 +12,7 @@
 - **Sequential Migration Management** - Apply migrations in order with version tracking
 - **Checksum Verification** - Detect modified migrations to prevent inconsistencies
 - **Security First** - Automatic password sanitization in error messages
+- **Structured Logging** - JSON output with severity levels for production monitoring
 - **TLS/HTTPS Support** - Secure connections with custom certificates
 - **Clustered ClickHouse** - Support for ON CLUSTER and replicated tables
 - **Flexible Configuration** - CLI options or environment variables
@@ -435,6 +436,116 @@ You must specify connection parameters either via DSN **OR** individual options,
 | `--key`             | `CH_MIGRATIONS_KEY`             | -               | migrate,status | Client key path            |
 | `--abort-divergent` | `CH_MIGRATIONS_ABORT_DIVERGENT` | `true`          | migrate        | Abort on checksum mismatch |
 | `--create-database` | `CH_MIGRATIONS_CREATE_DATABASE` | `true`          | migrate        | Auto-create database       |
+| `--log-format`      | `CH_MIGRATIONS_LOG_FORMAT`      | `console`       | migrate,status | Log output format          |
+| `--log-level`       | `CH_MIGRATIONS_LOG_LEVEL`       | `info`          | migrate,status | Minimum log level          |
+| `--log-prefix`      | `CH_MIGRATIONS_LOG_PREFIX`      | `clickhouse-migrations` | migrate,status | Log component/prefix name  |
+
+### Logging Options
+
+The tool supports both human-readable console output and structured JSON logging for production environments.
+
+#### Log Format
+
+Control the output format with `--log-format`:
+
+**Console format (default)** - Human-readable colored output:
+```sh
+clickhouse-migrations migrate \
+  --host=http://localhost:8123 \
+  --migrations-home=./migrations
+```
+
+**JSON format** - Structured logs with severity field:
+```sh
+clickhouse-migrations migrate \
+  --host=http://localhost:8123 \
+  --migrations-home=./migrations \
+  --log-format=json
+```
+
+JSON output example:
+```json
+{"severity":"INFO","message":"The migration(s) 1_init.sql was successfully applied!","timestamp":"2025-01-23T12:34:56.789Z","component":"clickhouse-migrations"}
+{"severity":"ERROR","message":"Connection failed","timestamp":"2025-01-23T12:34:57.123Z","component":"clickhouse-migrations","details":"Timeout after 5000ms"}
+```
+
+The JSON format includes:
+- `severity` - Log level (DEFAULT, DEBUG, INFO, NOTICE, WARNING, ERROR, CRITICAL, ALERT, EMERGENCY)
+- `message` - Log message
+- `timestamp` - ISO 8601 timestamp
+- `component` - Component name (default: "clickhouse-migrations")
+- `details` - Optional error details (for errors)
+
+#### Log Level
+
+Filter logs by minimum severity with `--log-level`:
+
+| Level   | Description                                  | Shows                              |
+| ------- | -------------------------------------------- | ---------------------------------- |
+| `debug` | All log messages including debug information | debug, info, warnings, errors      |
+| `info`  | Informational messages and above (default)   | info, warnings, errors             |
+| `warn`  | Warnings and errors only                     | warnings, errors                   |
+| `error` | Errors only                                  | errors only                        |
+
+**Examples:**
+
+Show only errors:
+```sh
+clickhouse-migrations migrate \
+  --host=http://localhost:8123 \
+  --migrations-home=./migrations \
+  --log-level=error
+```
+
+Debug mode with JSON output:
+```sh
+clickhouse-migrations migrate \
+  --host=http://localhost:8123 \
+  --migrations-home=./migrations \
+  --log-format=json \
+  --log-level=debug
+```
+
+Quiet mode (errors only) for CI/CD:
+```sh
+clickhouse-migrations migrate \
+  --host=http://localhost:8123 \
+  --migrations-home=./migrations \
+  --log-level=error
+```
+
+**Using environment variables:**
+```env
+CH_MIGRATIONS_LOG_FORMAT=json
+CH_MIGRATIONS_LOG_LEVEL=info
+```
+
+#### Log Prefix (Component Name)
+
+Customize the component name in logs with `--log-prefix`:
+
+```sh
+clickhouse-migrations migrate \
+  --host=http://localhost:8123 \
+  --migrations-home=./migrations \
+  --log-format=json \
+  --log-prefix=my-app
+```
+
+JSON output with custom prefix:
+```json
+{"severity":"INFO","message":"Migration applied","timestamp":"2025-01-23T12:34:56.789Z","component":"my-app"}
+```
+
+This is useful for:
+- **Multi-tenant deployments** - Identify which service is running migrations
+- **Log aggregation** - Filter logs by component in centralized logging systems
+- **Monitoring** - Track migrations per application in dashboards
+
+**Using environment variable:**
+```env
+CH_MIGRATIONS_LOG_PREFIX=my-application
+```
 
 ### Exit Codes
 
