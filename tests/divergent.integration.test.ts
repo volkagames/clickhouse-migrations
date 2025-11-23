@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { runMigration } from '../src/migrate'
 import { createMockClickHouseClient } from './helpers/mockClickHouseClient'
-import { setupIntegrationTest, cleanupTest, setupConsoleSpy } from './helpers/testSetup'
+import { cleanupTest, setupConsoleSpy, setupIntegrationTest } from './helpers/testSetup'
 
 const { mockClient, mockQuery, mockExec, mockInsert, mockClose, mockPing } = createMockClickHouseClient()
 
@@ -15,14 +15,17 @@ describe('Divergent migration tests with abort_divergent flag', () => {
 
   beforeEach(() => {
     setupIntegrationTest({
-      mockQuery, mockExec, mockInsert, mockClose,
+      mockQuery,
+      mockExec,
+      mockInsert,
+      mockClose,
       mockClient: undefined,
-      mockPing: undefined
+      mockPing: undefined,
     })
     consoleSpy = setupConsoleSpy()
 
     // Additional mock for ping
-    mockPing.mockResolvedValue({})
+    mockPing.mockResolvedValue()
   })
 
   afterEach(() => {

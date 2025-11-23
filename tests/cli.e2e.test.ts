@@ -4,7 +4,7 @@ import { promisify } from 'node:util'
 import { beforeAll, describe, expect, it } from 'vitest'
 import { buildCliCommand, runCliCommand } from './helpers/cliHelper'
 import { ensureContainerRunning } from './helpers/containerCheck'
-import { E2E_TIMEOUT, DOCKER_EXEC_TIMEOUT } from './helpers/testConstants'
+import { DOCKER_EXEC_TIMEOUT, E2E_TIMEOUT } from './helpers/testConstants'
 
 const execAsync = promisify(exec)
 

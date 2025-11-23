@@ -17,10 +17,7 @@ const execAsync = promisify(exec)
  * })
  * ```
  */
-export async function ensureContainerRunning(
-  containerName: string,
-  startCommand?: string,
-): Promise<void> {
+export async function ensureContainerRunning(containerName: string, startCommand?: string): Promise<void> {
   try {
     const { stdout } = await execAsync(`docker ps --filter "name=${containerName}" --format "{{.Status}}"`)
     if (stdout.includes('Up')) {
@@ -44,8 +41,6 @@ export async function ensureContainerRunning(
 
     // Generic Docker error
     const suggestion = startCommand ? `\nTo start the container: ${startCommand}` : ''
-    throw new Error(
-      `Cannot check container status: ${errorMsg}${suggestion}`,
-    )
+    throw new Error(`Cannot check container status: ${errorMsg}${suggestion}`)
   }
 }

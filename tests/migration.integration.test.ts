@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { runMigration } from '../src/migrate'
 import { createMockClickHouseClient } from './helpers/mockClickHouseClient'
-import { setupIntegrationTest, cleanupTest } from './helpers/testSetup'
+import { cleanupTest, setupIntegrationTest } from './helpers/testSetup'
 
 const { mockClient, mockQuery, mockExec, mockInsert, mockClose } = createMockClickHouseClient()
 
@@ -13,9 +13,12 @@ vi.mock('@clickhouse/client', () => ({
 describe('Migration tests', () => {
   beforeEach(() => {
     setupIntegrationTest({
-      mockQuery, mockExec, mockInsert, mockClose,
+      mockQuery,
+      mockExec,
+      mockInsert,
+      mockClose,
       mockClient: undefined,
-      mockPing: undefined
+      mockPing: undefined,
     })
   })
 

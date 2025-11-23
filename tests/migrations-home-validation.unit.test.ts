@@ -144,7 +144,7 @@ describe('Migrations Home Path Validation', () => {
         await promise.catch((error) => {
           expect(
             error.message.includes('operations on Windows system directories are not allowed') ||
-            error.message.includes('No migration directory')
+              error.message.includes('No migration directory'),
           ).toBe(true)
         })
       })
@@ -162,7 +162,7 @@ describe('Migrations Home Path Validation', () => {
         await promise.catch((error) => {
           expect(
             error.message.includes('operations on Windows system directories are not allowed') ||
-            error.message.includes('No migration directory')
+              error.message.includes('No migration directory'),
           ).toBe(true)
         })
       })
@@ -181,7 +181,7 @@ describe('Migrations Home Path Validation', () => {
         await promise.catch((error) => {
           expect(
             error.message.includes('operations on Windows system directories are not allowed') ||
-            error.message.includes('No migration directory')
+              error.message.includes('No migration directory'),
           ).toBe(true)
         })
       })

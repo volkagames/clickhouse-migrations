@@ -7,7 +7,13 @@
     "defaultBranch": "main"
   },
   "files": {
-    "includes": ["src/**/*.ts", "!**/node_modules", "!**/lib", "!**/.DS_Store"],
+    "includes": [
+      "src/**/*.ts",
+      "tests/**/*.ts",
+      "!**/node_modules",
+      "!**/lib",
+      "!**/.DS_Store"
+    ],
     "ignoreUnknown": false
   },
   "formatter": {
@@ -132,7 +138,12 @@
         "noConsole": {
           "level": "off",
           "options": {
-            "allow": ["log", "error", "warn", "info"]
+            "allow": [
+              "log",
+              "error",
+              "warn",
+              "info"
+            ]
           }
         },
         "noConstEnum": "error",

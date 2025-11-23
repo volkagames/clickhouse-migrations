@@ -6,6 +6,11 @@ import { vi } from 'vitest'
 export type MockClickHouseClient = ReturnType<typeof createMockClickHouseClient>
 
 /**
+ * Type for partial mock client used in test setup
+ */
+export type PartialMockClickHouseClient = Partial<MockClickHouseClient>
+
+/**
  * Creates a mock ClickHouse client with all necessary methods mocked.
  * This provides a consistent mock structure across all integration tests.
  *
@@ -23,7 +28,9 @@ export type MockClickHouseClient = ReturnType<typeof createMockClickHouseClient>
  * ```
  */
 export function createMockClickHouseClient() {
-  const mockQuery = vi.fn(() => Promise.resolve({ json: () => Promise.resolve([]) }))
+  const mockQuery = vi.fn(() =>
+    Promise.resolve({ json: () => Promise.resolve([]) as Promise<Array<Record<string, unknown>>> }),
+  )
   const mockExec = vi.fn(() => Promise.resolve({}))
   const mockInsert = vi.fn(() => Promise.resolve({}))
   const mockClose = vi.fn(() => Promise.resolve())

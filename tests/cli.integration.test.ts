@@ -10,7 +10,6 @@ const envVars = {
 }
 
 describe('Execution tests', () => {
-
   it('No parameters provided', async () => {
     const result = await execute('node lib/cli.js migrate', { cwd: '.' })
 

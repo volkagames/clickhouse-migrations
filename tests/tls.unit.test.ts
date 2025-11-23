@@ -1,8 +1,8 @@
 import * as fs from 'node:fs'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { MIGRATION_WITH_TLS_TIMEOUT, MIGRATION_WITH_TLS_TIMEOUT } from './helpers/testConstants'
-import { getTLSCertificatePaths } from './helpers/tlsHelper'
+import { MIGRATION_WITH_TLS_TIMEOUT } from './helpers/testConstants'
 import { cleanupTest } from './helpers/testSetup'
+import { getTLSCertificatePaths } from './helpers/tlsHelper'
 
 // Mock the ClickHouse client to capture the connection parameters
 const { mockCreateClient, mockClickHouseClient } = vi.hoisted(() => {
@@ -53,9 +53,9 @@ describe('TLS Configuration Unit Tests', () => {
       // Check that none of the calls include TLS configuration
       type CallArgs = [config?: Record<string, unknown>]
       const calls = mockCreateClient.mock.calls as CallArgs[]
-      calls.forEach((call) => {
+      for (const call of calls) {
         expect(call[0]).not.toHaveProperty('tls')
-      })
+      }
     })
 
     it('should create ClickHouse client with CA certificate only', async () => {
@@ -81,14 +81,14 @@ describe('TLS Configuration Unit Tests', () => {
       const tlsCalls = calls.filter((call) => call[0] && 'tls' in call[0])
       expect(tlsCalls.length).toBeGreaterThan(0)
 
-      tlsCalls.forEach((call) => {
+      for (const call of tlsCalls) {
         const config = call[0] as { tls: Record<string, unknown> }
         expect(config.tls).toHaveProperty('ca_cert')
         expect(config.tls.ca_cert).toBeInstanceOf(Buffer)
         // Should not have client cert/key when only CA is provided
         expect(config.tls).not.toHaveProperty('cert')
         expect(config.tls).not.toHaveProperty('key')
-      })
+      }
     })
 
     it('should create ClickHouse client with full TLS configuration', async () => {
@@ -116,7 +116,7 @@ describe('TLS Configuration Unit Tests', () => {
       const tlsCalls = calls.filter((call) => call[0] && 'tls' in call[0])
       expect(tlsCalls.length).toBeGreaterThan(0)
 
-      tlsCalls.forEach((call) => {
+      for (const call of tlsCalls) {
         const config = call[0] as { tls: Record<string, Buffer> }
         expect(config.tls).toHaveProperty('ca_cert')
         expect(config.tls).toHaveProperty('cert')
@@ -125,7 +125,7 @@ describe('TLS Configuration Unit Tests', () => {
         expect(config.tls.ca_cert).toBeInstanceOf(Buffer)
         expect(config.tls.cert).toBeInstanceOf(Buffer)
         expect(config.tls.key).toBeInstanceOf(Buffer)
-      })
+      }
     })
 
     it('should combine TLS configuration with other connection options', async () => {
@@ -237,12 +237,12 @@ describe('TLS Configuration Unit Tests', () => {
       const calls = mockCreateClient.mock.calls as CallArgs[]
 
       // Both calls should have TLS configuration
-      calls.forEach((call) => {
+      for (const call of calls) {
         expect(call[0]).toHaveProperty('tls')
         const config = call[0] as { tls: Record<string, Buffer> }
         expect(config.tls).toHaveProperty('ca_cert')
         expect(config.tls.ca_cert).toBeInstanceOf(Buffer)
-      })
+      }
 
       // First call should be for database creation (no database specified)
       expect(calls[0]).toBeDefined()

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { COLORS, getLogger, type Logger, resetLogger, setLogger } from '../src/logger'
-import { setupConsoleSpy, cleanupTest } from './helpers/testSetup'
+import { cleanupTest, setupConsoleSpy } from './helpers/testSetup'
 
 describe('Logger Module', () => {
   let consoleSpy: ReturnType<typeof setupConsoleSpy>
@@ -36,7 +36,12 @@ describe('Logger Module', () => {
         const message = 'Line 1\nLine 2\nLine 3'
         logger.info(message)
 
-        expect(consoleSpy.consoleLogSpy).toHaveBeenCalledWith(COLORS.CYAN, 'clickhouse-migrations :', COLORS.RESET, message)
+        expect(consoleSpy.consoleLogSpy).toHaveBeenCalledWith(
+          COLORS.CYAN,
+          'clickhouse-migrations :',
+          COLORS.RESET,
+          message,
+        )
       })
     })
 
@@ -87,7 +92,11 @@ describe('Logger Module', () => {
         const logger = getLogger()
         logger.warn('Test warning message')
 
-        expect(consoleSpy.consoleLogSpy).toHaveBeenCalledWith(COLORS.YELLOW, '  Warning: Test warning message', COLORS.RESET)
+        expect(consoleSpy.consoleLogSpy).toHaveBeenCalledWith(
+          COLORS.YELLOW,
+          '  Warning: Test warning message',
+          COLORS.RESET,
+        )
       })
     })
 
@@ -185,11 +194,15 @@ describe('Logger Module', () => {
 
       // Should now use console again
       defaultLogger.info('test')
-      expect(consoleSpy.consoleLogSpy).toHaveBeenCalledWith(COLORS.CYAN, 'clickhouse-migrations :', COLORS.RESET, 'test')
+      expect(consoleSpy.consoleLogSpy).toHaveBeenCalledWith(
+        COLORS.CYAN,
+        'clickhouse-migrations :',
+        COLORS.RESET,
+        'test',
+      )
       expect(mockLogger.info).not.toHaveBeenCalled()
     })
   })
-
 
   describe('Integration scenarios', () => {
     it('should handle rapid sequential calls', () => {
@@ -210,7 +223,12 @@ describe('Logger Module', () => {
       const specialChars = 'Test with: @#$%^&*()[]{}|\\<>?/~`'
 
       logger.info(specialChars)
-      expect(consoleSpy.consoleLogSpy).toHaveBeenCalledWith(COLORS.CYAN, 'clickhouse-migrations :', COLORS.RESET, specialChars)
+      expect(consoleSpy.consoleLogSpy).toHaveBeenCalledWith(
+        COLORS.CYAN,
+        'clickhouse-migrations :',
+        COLORS.RESET,
+        specialChars,
+      )
     })
 
     it('should handle unicode and emojis', () => {
@@ -218,7 +236,12 @@ describe('Logger Module', () => {
       const unicodeMessage = 'Success! ✓ ✅ 🎉 中文'
 
       logger.info(unicodeMessage)
-      expect(consoleSpy.consoleLogSpy).toHaveBeenCalledWith(COLORS.CYAN, 'clickhouse-migrations :', COLORS.RESET, unicodeMessage)
+      expect(consoleSpy.consoleLogSpy).toHaveBeenCalledWith(
+        COLORS.CYAN,
+        'clickhouse-migrations :',
+        COLORS.RESET,
+        unicodeMessage,
+      )
     })
 
     it('should work correctly when switching between loggers multiple times', () => {

@@ -1,4 +1,4 @@
-import { exec, type ExecException, type ExecOptions as NodeExecOptions } from 'node:child_process'
+import { type ExecException, exec, type ExecOptions as NodeExecOptions } from 'node:child_process'
 import * as path from 'node:path'
 import { promisify } from 'node:util'
 
@@ -54,7 +54,7 @@ export function buildCliCommand(command: string, options: CliOptions = {}): stri
     .filter((arg) => arg !== '')
     .join(' ')
 
-  return `node ${cliPath} ${command}${args ? ' ' + args : ''}`
+  return `node ${cliPath} ${command}${args ? ` ${args}` : ''}`
 }
 
 /**

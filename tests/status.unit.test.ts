@@ -4,8 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getMigrationStatus } from '../src/migrate'
 import type { MigrationStatusConfig } from '../src/types/cli'
 import { createMockClickHouseClient } from './helpers/mockClickHouseClient'
-import { cleanupTest, calculateChecksum } from './helpers/testSetup'
 import { MIGRATION_WITH_TLS_TIMEOUT } from './helpers/testConstants'
+import { calculateChecksum, cleanupTest } from './helpers/testSetup'
 
 /**
  * Status Unit Tests

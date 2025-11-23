@@ -75,7 +75,7 @@ describe('TLS Certificate Support Tests', () => {
       expect(result.stderr).toContain('ENOENT')
     })
 
-    it('should recognize certificate file existence', async () => {
+    it('should recognize certificate file existence', () => {
       // Verify the test certificate files exist
       expect(fs.existsSync(caCertPath)).toBe(true)
       expect(fs.existsSync(clientCertPath)).toBe(true)
