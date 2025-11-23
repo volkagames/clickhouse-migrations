@@ -410,35 +410,50 @@ clickhouse-migrations status [options]
 
 You must specify connection parameters either via DSN **OR** individual options, but not both:
 
-| Option              | Environment Variable     | Required | Default   | Description                                                                                           | Example                               |
-| ------------------- | ------------------------ | -------- | --------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------- |
-| `--dsn`             | `CH_MIGRATIONS_DSN`      | No*      | -         | Connection DSN (use **either** this **or** separate parameters)                                       | `clickhouse://user:pass@host:8123/db` |
-| `--host`            | `CH_MIGRATIONS_HOST`     | Yes*     | -         | ClickHouse server URL                                                                                 | `http://localhost:8123`               |
-| `--user`            | `CH_MIGRATIONS_USER`     | No       | (none)    | Username (uses [ClickHouse defaults](https://clickhouse.com/docs/operations/settings/settings-users)) | `default`                             |
-| `--password`        | `CH_MIGRATIONS_PASSWORD` | No       | (none)    | Password (uses [ClickHouse defaults](https://clickhouse.com/docs/operations/settings/settings-users)) | `mypassword`                          |
+| Option              | Environment Variable     | Required | Default          | Description                                                                                                               | Example                               |
+| ------------------- | ------------------------ | -------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
+| `--dsn`             | `CH_MIGRATIONS_DSN`      | No*      | -                | Connection DSN (use **either** this **or** separate parameters)                                                           | `clickhouse://user:pass@host:8123/db` |
+| `--host`            | `CH_MIGRATIONS_HOST`     | Yes*     | -                | ClickHouse server URL                                                                                                     | `http://localhost:8123`               |
+| `--user`            | `CH_MIGRATIONS_USER`     | No       | (none)           | Username (uses [ClickHouse defaults](https://clickhouse.com/docs/operations/settings/settings-users))                     | `default`                             |
+| `--password`        | `CH_MIGRATIONS_PASSWORD` | No       | (none)           | Password (uses [ClickHouse defaults](https://clickhouse.com/docs/operations/settings/settings-users))                     | `mypassword`                          |
 | `--db`              | `CH_MIGRATIONS_DB`       | No       | (server default) | Database name (server uses `default` if not specified, see [HTTP interface](https://clickhouse.com/docs/interfaces/http)) | `analytics`                           |
-| `--migrations-home` | `CH_MIGRATIONS_HOME`     | Yes      | -         | Migrations directory                                                                                  | `./migrations`                        |
+| `--migrations-home` | `CH_MIGRATIONS_HOME`     | Yes      | -                | Migrations directory                                                                                                      | `./migrations`                        |
 
 **Notes:**
 - **IMPORTANT:** You must provide **either** `--dsn` **OR** separate parameters (`--host`, `--user`, `--password`, `--db`), but **NOT BOTH**. Mixing DSN with individual connection parameters will result in an error.
 - If `--user` and `--password` are not provided, ClickHouse will use its default authentication mechanism (typically the `default` user with no password for local connections).
 - If `--db` is not specified, the ClickHouse server will automatically use the `default` database.
 
-### Optional Options
+### Additional Options
 
-| Option              | Environment Variable            | Default         | Commands       | Description                |
-| ------------------- | ------------------------------- | --------------- | -------------- | -------------------------- |
-| `--db-engine`       | `CH_MIGRATIONS_DB_ENGINE`       | `ENGINE=Atomic` | migrate        | Database engine clause     |
-| `--table-engine`    | `CH_MIGRATIONS_TABLE_ENGINE`    | `MergeTree`     | migrate,status | Migration table engine     |
-| `--timeout`         | `CH_MIGRATIONS_TIMEOUT`         | `30000`         | migrate,status | Request timeout (ms)       |
-| `--ca-cert`         | `CH_MIGRATIONS_CA_CERT`         | -               | migrate,status | CA certificate path        |
-| `--cert`            | `CH_MIGRATIONS_CERT`            | -               | migrate,status | Client certificate path    |
-| `--key`             | `CH_MIGRATIONS_KEY`             | -               | migrate,status | Client key path            |
-| `--abort-divergent` | `CH_MIGRATIONS_ABORT_DIVERGENT` | `true`          | migrate        | Abort on checksum mismatch |
-| `--create-database` | `CH_MIGRATIONS_CREATE_DATABASE` | `true`          | migrate        | Auto-create database       |
-| `--log-format`      | `CH_MIGRATIONS_LOG_FORMAT`      | `console`       | migrate,status | Log output format          |
-| `--log-level`       | `CH_MIGRATIONS_LOG_LEVEL`       | `info`          | migrate,status | Minimum log level          |
-| `--log-prefix`      | `CH_MIGRATIONS_LOG_PREFIX`      | `clickhouse-migrations` | migrate,status | Log component/prefix name  |
+#### For `migrate` command
+
+| Option | Environment Variable | Default | Description |
+| --- | --- | --- | --- |
+| `--db-engine` | `CH_MIGRATIONS_DB_ENGINE` | `ENGINE=Atomic` | Database engine clause |
+| `--table-engine` | `CH_MIGRATIONS_TABLE_ENGINE` | `MergeTree` | Migration table engine |
+| `--timeout` | `CH_MIGRATIONS_TIMEOUT` | `30000` | Request timeout (ms) |
+| `--ca-cert` | `CH_MIGRATIONS_CA_CERT` | - | CA certificate path |
+| `--cert` | `CH_MIGRATIONS_CERT` | - | Client certificate path |
+| `--key` | `CH_MIGRATIONS_KEY` | - | Client key path |
+| `--abort-divergent` | `CH_MIGRATIONS_ABORT_DIVERGENT` | `true` | Abort on checksum mismatch |
+| `--create-database` | `CH_MIGRATIONS_CREATE_DATABASE` | `true` | Auto-create database |
+| `--log-format` | `CH_MIGRATIONS_LOG_FORMAT` | `console` | Log output format |
+| `--log-level` | `CH_MIGRATIONS_LOG_LEVEL` | `info` | Minimum log level |
+| `--log-prefix` | `CH_MIGRATIONS_LOG_PREFIX` | `clickhouse-migrations` | Log component/prefix name |
+
+#### For `status` command
+
+| Option | Environment Variable | Default | Description |
+| --- | --- | --- | --- |
+| `--table-engine` | `CH_MIGRATIONS_TABLE_ENGINE` | `MergeTree` | Migration table engine |
+| `--timeout` | `CH_MIGRATIONS_TIMEOUT` | `30000` | Request timeout (ms) |
+| `--ca-cert` | `CH_MIGRATIONS_CA_CERT` | - | CA certificate path |
+| `--cert` | `CH_MIGRATIONS_CERT` | - | Client certificate path |
+| `--key` | `CH_MIGRATIONS_KEY` | - | Client key path |
+| `--log-format` | `CH_MIGRATIONS_LOG_FORMAT` | `console` | Log output format |
+| `--log-level` | `CH_MIGRATIONS_LOG_LEVEL` | `info` | Minimum log level |
+| `--log-prefix` | `CH_MIGRATIONS_LOG_PREFIX` | `clickhouse-migrations` | Log component/prefix name |
 
 ### Logging Options
 
@@ -480,12 +495,12 @@ The JSON format includes:
 
 Filter logs by minimum severity with `--log-level`:
 
-| Level   | Description                                  | Shows                              |
-| ------- | -------------------------------------------- | ---------------------------------- |
-| `debug` | All log messages including debug information | debug, info, warnings, errors      |
-| `info`  | Informational messages and above (default)   | info, warnings, errors             |
-| `warn`  | Warnings and errors only                     | warnings, errors                   |
-| `error` | Errors only                                  | errors only                        |
+| Level   | Description                                  | Shows                         |
+| ------- | -------------------------------------------- | ----------------------------- |
+| `debug` | All log messages including debug information | debug, info, warnings, errors |
+| `info`  | Informational messages and above (default)   | info, warnings, errors        |
+| `warn`  | Warnings and errors only                     | warnings, errors              |
+| `error` | Errors only                                  | errors only                   |
 
 **Examples:**
 
