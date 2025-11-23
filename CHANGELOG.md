@@ -1,5 +1,85 @@
 # Changelog
 
+## [Unreleased]
+
+### Features
+
+* **DSN Support**: add Data Source Name (DSN) connection string support with ClickHouse settings via query parameters
+  - Enable connection configuration through single DSN string
+  - Support for ClickHouse settings as URL query parameters
+  - Simplifies connection setup and configuration
+
+* **Migration Status**: implement migration status command to view applied and pending migrations
+  - Add `displayMigrationStatus` to exported functions
+  - Show clear overview of migration state
+  - Help track migration progress
+
+* **Optional Authentication**: make username, password, and database optional parameters
+  - More flexible authentication configuration
+  - Support for environments with different security requirements
+
+* **Password Security**: add password sanitization to prevent exposure in logs and error messages
+  - Enforce DSN/params separation for better security
+  - Protect sensitive credentials in output
+
+* **Path Validation**: add `validateMigrationsHome` function to enhance security of migrations directory path handling
+  - Prevent path traversal vulnerabilities
+  - Ensure only valid paths are processed
+
+* **Centralized Logging**: separate CLI logic and add centralized logger for consistent output handling
+
+* **Documentation**: add "Philosophy: Forward-Only Migrations" section to README clarifying migration strategy and rationale for no rollback support
+
+### Bug Fixes
+
+* **Resource Management**: ensure client is closed on connection or database creation errors to prevent resource leaks
+
+* **Import Cleanup**: cleanup import syntax and type definitions for better code consistency
+
+* **SQL Injection**: fix multiple SQL injection vulnerabilities
+  - Add validation for db_name and table_engine parameters
+  - Update database creation query to use parameterized queries
+  - Sanitize db_engine parameter to prevent malicious SQL injection
+
+* **Migration Parsing**: improve migration version parsing and add duplicate version detection
+  - Fix migration version parsing to handle edge cases
+  - Detect and prevent duplicate migration versions
+
+* **SET Statement Parsing**: improve SET statement parsing to handle edge cases
+
+* **Test Fixes**: correct test parameter order and environment handling
+  - Fix TLS unit tests by adding missing table_engine parameter
+  - Fix CLI integration test to inherit process.env
+  - Fix duplicate versions test error message
+  - Ensure all unit and integration tests pass
+
+* **Error Handling**: improve error handling for empty migrations array
+
+* **SQL Parser**: fix unterminated block comments handling
+  - Throw error for unterminated block comments
+  - Preserve whitespace correctly in parsed SQL
+
+### Code Refactoring
+
+* **Test Framework**: migrate from Jest to Vitest
+  - Improve test performance and developer experience
+  - Better ESM support and faster execution
+
+* **Build Tooling**: migrate to Bun and Biome for modernized tooling
+  - Replace npm/yarn with Bun for faster package management
+  - Replace ESLint/Prettier with Biome for unified linting and formatting
+  - Add preinstall hook to enforce Bun usage
+
+* **Test Organization**: separate unit and integration tests for better test organization
+  - Move authentication tests to E2E suite
+  - Improve error handling in tests
+
+* **Async Patterns**: refactor connect function to be asynchronous
+  - Update file reading to use async/await
+  - Better performance and error handling during TLS configuration
+
+* **Type Safety**: upgrade TypeScript target to ES2020 and add additional compiler options for better type safety and code quality
+
 ## [1.2.0](https://github.com/VVVi/clickhouse-migrations/compare/v1.1.3...v1.2.0) (2025-11-21)
 
 
