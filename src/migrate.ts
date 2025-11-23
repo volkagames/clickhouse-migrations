@@ -1,5 +1,6 @@
 import crypto from 'node:crypto'
 import { readdir, readFile } from 'node:fs/promises'
+import { resolve } from 'node:path'
 import { type ClickHouseClient, type ClickHouseClientConfigOptions, createClient } from '@clickhouse/client'
 import { setupConnectionConfig } from './dsn-parser'
 import { COLORS, getLogger } from './logger'
@@ -62,6 +63,50 @@ const validate = (value: string, pattern: RegExp, errorMsg: string): string => {
     throw new Error(errorMsg)
   }
   return trimmed
+}
+
+// Validates migrations directory path for security and correctness
+// Resolves the full absolute path to prevent path traversal issues
+const validateMigrationsHome = (path: string): string => {
+  // Check for null, undefined, or non-string values
+  if (!path || typeof path !== 'string') {
+    throw new Error('Migrations directory path is required and must be a string')
+  }
+
+  const trimmed = path.trim()
+
+  // Check for empty or whitespace-only strings
+  if (!trimmed) {
+    throw new Error('Migrations directory path cannot be empty or whitespace')
+  }
+
+  // Block null bytes (directory traversal/injection technique)
+  if (trimmed.includes('\0')) {
+    throw new Error('Invalid migrations directory path: null bytes are not allowed')
+  }
+
+  // Resolve to absolute path - this handles .. and . automatically
+  const resolvedPath = resolve(trimmed)
+
+  // Warn about potentially dangerous absolute paths to system directories
+  // This is a safety check to prevent accidental operations on system folders
+  const dangerousPaths = ['/etc', '/sys', '/proc', '/dev', '/root', '/boot', '/bin', '/sbin', '/usr/bin', '/usr/sbin']
+  const normalizedPath = resolvedPath.replace(/\\/g, '/').toLowerCase()
+
+  for (const dangerousPath of dangerousPaths) {
+    if (normalizedPath === dangerousPath || normalizedPath.startsWith(`${dangerousPath}/`)) {
+      throw new Error(
+        `Invalid migrations directory path: operations on system directory '${dangerousPath}' are not allowed`,
+      )
+    }
+  }
+
+  // Check for Windows absolute paths to system directories (C:\Windows, C:\System32, etc.)
+  if (/^[a-z]:\\(windows|system32|program files)/i.test(resolvedPath)) {
+    throw new Error('Invalid migrations directory path: operations on Windows system directories are not allowed')
+  }
+
+  return resolvedPath
 }
 
 const isQueryError = (error: unknown): error is QueryError => {
@@ -237,11 +282,14 @@ const initMigrationTable = async (
 }
 
 const getMigrations = async (migrationsHome: string): Promise<{ version: number; file: string }[]> => {
+  // Validate the migrations directory path for security
+  const validatedPath = validateMigrationsHome(migrationsHome)
+
   let files: string[] = []
   try {
-    files = await readdir(migrationsHome)
+    files = await readdir(validatedPath)
   } catch (_: unknown) {
-    throw new Error(`No migration directory ${migrationsHome}. Please create it.`)
+    throw new Error(`No migration directory ${validatedPath}. Please create it.`)
   }
 
   const migrations: MigrationBase[] = []
@@ -277,7 +325,7 @@ const getMigrations = async (migrationsHome: string): Promise<{ version: number;
   }
 
   if (!migrations.length) {
-    throw new Error(`No migrations in the ${migrationsHome} migrations directory`)
+    throw new Error(`No migrations in the ${validatedPath} migrations directory`)
   }
 
   migrations.sort((m1, m2) => m1.version - m2.version)
@@ -381,13 +429,16 @@ const applyMigrations = async (
   abortDivergent = true,
   globalSettings: Record<string, string> = {},
 ): Promise<void> => {
+  // Validate the migrations directory path for security
+  const validatedPath = validateMigrationsHome(migrationsHome)
+
   const migrationsApplied = await getAppliedMigrations(client)
   validateAppliedMigrations(migrationsApplied, migrations)
 
   const appliedMigrationsList: string[] = []
 
   for (const migration of migrations) {
-    const content = await readFile(`${migrationsHome}/${migration.file}`, 'utf-8')
+    const content = await readFile(`${validatedPath}/${migration.file}`, 'utf-8')
     const checksum = crypto.createHash('md5').update(content).digest('hex')
 
     const appliedMigration = migrationsApplied.get(migration.version)
@@ -551,8 +602,11 @@ const getMigrationStatus = async (config: MigrationStatusConfig): Promise<Migrat
   // Build status array by combining migrations from filesystem and database
   const statusList: MigrationStatus[] = []
 
+  // Validate the migrations directory path for security (defence in depth)
+  const validatedPath = validateMigrationsHome(config.migrationsHome)
+
   for (const migration of migrations) {
-    const content = await readFile(`${config.migrationsHome}/${migration.file}`, 'utf-8')
+    const content = await readFile(`${validatedPath}/${migration.file}`, 'utf-8')
     const checksum = crypto.createHash('md5').update(content).digest('hex')
     const appliedMigration = migrationsApplied.get(migration.version)
 
