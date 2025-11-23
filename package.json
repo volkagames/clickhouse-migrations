@@ -13,6 +13,7 @@
       "types": "./lib/migrate.d.ts",
       "default": "./lib/migrate.js"
     },
+    "./src/*": "./src/*",
     "./package.json": "./package.json"
   },
   "sideEffects": false,
