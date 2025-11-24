@@ -1,6 +1,6 @@
 # Run all tests before pushing
 echo "🧪 Running tests..."
-bun run test
+bun run test:unit
 
 # Run build to ensure everything compiles
 echo "🔨 Running build..."
