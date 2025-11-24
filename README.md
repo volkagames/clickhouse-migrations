@@ -1,11 +1,14 @@
 # clickhouse-migrations
-
-> ClickHouse Migrations CLI
-
-[![npm version](https://img.shields.io/npm/v/clickhouse-migrations.svg)](https://www.npmjs.com/package/clickhouse-migrations)
+[![npm version](https://img.shields.io/npm/v/@volkagames/clickhouse-migrations.svg)](https://www.npmjs.com/package/@volkagames/clickhouse-migrations)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Bun](https://img.shields.io/badge/bun-%3E=1.2.23-black)](https://bun.sh)
 [![Node](https://img.shields.io/badge/node-%3E=20-green)](https://nodejs.org)
+
+Version control for your ClickHouse database schema.
+
+Run migrations from the command line or embed them in your application. Track what's applied, verify integrity, deploy consistently across environments. Built for production use with clustering, TLS, and structured logging.
+
+Forked from [VVVi/clickhouse-migrations](https://github.com/VVVi/clickhouse-migrations).
 
 ## Features
 
@@ -38,23 +41,23 @@
 
 ```sh
 # Using Bun (recommended)
-bun add clickhouse-migrations
+bun add @volkagames/clickhouse-migrations
 
 # Or using npm
-npm install clickhouse-migrations
+npm install @volkagames/clickhouse-migrations
 
 # Or using yarn
-yarn add clickhouse-migrations
+yarn add @volkagames/clickhouse-migrations
 ```
 
 Or install globally:
 
 ```sh
 # Using Bun (recommended)
-bun add -g clickhouse-migrations
+bun add -g @volkagames/clickhouse-migrations
 
 # Or using npm
-npm install -g clickhouse-migrations
+npm install -g @volkagames/clickhouse-migrations
 ```
 
 > **Note:** While end users can install this package with any package manager, **development requires [Bun](https://bun.sh) >= 1.2.23**. See the [Development](#development) section for details.
@@ -439,34 +442,34 @@ Connection parameters can be specified via DSN or individual options:
 
 #### For `migrate` command
 
-| Option | Environment Variable | Default | Description |
-| --- | --- | --- | --- |
-| `--db-engine` | `CH_MIGRATIONS_DB_ENGINE` | `ENGINE=Atomic` | Database engine clause |
-| `--table-engine` | `CH_MIGRATIONS_TABLE_ENGINE` | `MergeTree` | Migration table engine |
-| `--migration-table-name` | `CH_MIGRATIONS_TABLE_NAME` | `_migrations` | Name for migrations tracking table |
-| `--timeout` | `CH_MIGRATIONS_TIMEOUT` | `30000` | Request timeout (ms) |
-| `--ca-cert` | `CH_MIGRATIONS_CA_CERT` | - | CA certificate path |
-| `--cert` | `CH_MIGRATIONS_CERT` | - | Client certificate path |
-| `--key` | `CH_MIGRATIONS_KEY` | - | Client key path |
-| `--abort-divergent` | `CH_MIGRATIONS_ABORT_DIVERGENT` | `true` | Abort on checksum mismatch |
-| `--create-database` | `CH_MIGRATIONS_CREATE_DATABASE` | `true` | Auto-create database |
-| `--log-format` | `CH_MIGRATIONS_LOG_FORMAT` | `console` | Log output format |
-| `--log-level` | `CH_MIGRATIONS_LOG_LEVEL` | `info` | Minimum log level |
-| `--log-prefix` | `CH_MIGRATIONS_LOG_PREFIX` | `clickhouse-migrations` | Log component/prefix name |
+| Option                   | Environment Variable            | Default                 | Description                        |
+| ------------------------ | ------------------------------- | ----------------------- | ---------------------------------- |
+| `--db-engine`            | `CH_MIGRATIONS_DB_ENGINE`       | `ENGINE=Atomic`         | Database engine clause             |
+| `--table-engine`         | `CH_MIGRATIONS_TABLE_ENGINE`    | `MergeTree`             | Migration table engine             |
+| `--migration-table-name` | `CH_MIGRATIONS_TABLE_NAME`      | `_migrations`           | Name for migrations tracking table |
+| `--timeout`              | `CH_MIGRATIONS_TIMEOUT`         | `30000`                 | Request timeout (ms)               |
+| `--ca-cert`              | `CH_MIGRATIONS_CA_CERT`         | -                       | CA certificate path                |
+| `--cert`                 | `CH_MIGRATIONS_CERT`            | -                       | Client certificate path            |
+| `--key`                  | `CH_MIGRATIONS_KEY`             | -                       | Client key path                    |
+| `--abort-divergent`      | `CH_MIGRATIONS_ABORT_DIVERGENT` | `true`                  | Abort on checksum mismatch         |
+| `--create-database`      | `CH_MIGRATIONS_CREATE_DATABASE` | `true`                  | Auto-create database               |
+| `--log-format`           | `CH_MIGRATIONS_LOG_FORMAT`      | `console`               | Log output format                  |
+| `--log-level`            | `CH_MIGRATIONS_LOG_LEVEL`       | `info`                  | Minimum log level                  |
+| `--log-prefix`           | `CH_MIGRATIONS_LOG_PREFIX`      | `clickhouse-migrations` | Log component/prefix name          |
 
 #### For `status` command
 
-| Option | Environment Variable | Default | Description |
-| --- | --- | --- | --- |
-| `--table-engine` | `CH_MIGRATIONS_TABLE_ENGINE` | `MergeTree` | Migration table engine |
-| `--migration-table-name` | `CH_MIGRATIONS_TABLE_NAME` | `_migrations` | Name for migrations tracking table |
-| `--timeout` | `CH_MIGRATIONS_TIMEOUT` | `30000` | Request timeout (ms) |
-| `--ca-cert` | `CH_MIGRATIONS_CA_CERT` | - | CA certificate path |
-| `--cert` | `CH_MIGRATIONS_CERT` | - | Client certificate path |
-| `--key` | `CH_MIGRATIONS_KEY` | - | Client key path |
-| `--log-format` | `CH_MIGRATIONS_LOG_FORMAT` | `console` | Log output format |
-| `--log-level` | `CH_MIGRATIONS_LOG_LEVEL` | `info` | Minimum log level |
-| `--log-prefix` | `CH_MIGRATIONS_LOG_PREFIX` | `clickhouse-migrations` | Log component/prefix name |
+| Option                   | Environment Variable         | Default                 | Description                        |
+| ------------------------ | ---------------------------- | ----------------------- | ---------------------------------- |
+| `--table-engine`         | `CH_MIGRATIONS_TABLE_ENGINE` | `MergeTree`             | Migration table engine             |
+| `--migration-table-name` | `CH_MIGRATIONS_TABLE_NAME`   | `_migrations`           | Name for migrations tracking table |
+| `--timeout`              | `CH_MIGRATIONS_TIMEOUT`      | `30000`                 | Request timeout (ms)               |
+| `--ca-cert`              | `CH_MIGRATIONS_CA_CERT`      | -                       | CA certificate path                |
+| `--cert`                 | `CH_MIGRATIONS_CERT`         | -                       | Client certificate path            |
+| `--key`                  | `CH_MIGRATIONS_KEY`          | -                       | Client key path                    |
+| `--log-format`           | `CH_MIGRATIONS_LOG_FORMAT`   | `console`               | Log output format                  |
+| `--log-level`            | `CH_MIGRATIONS_LOG_LEVEL`    | `info`                  | Minimum log level                  |
+| `--log-prefix`           | `CH_MIGRATIONS_LOG_PREFIX`   | `clickhouse-migrations` | Log component/prefix name          |
 
 ### Logging Options
 
@@ -585,7 +588,7 @@ CH_MIGRATIONS_LOG_PREFIX=my-application
 You can use `clickhouse-migrations` as a library in your Node.js or Bun application:
 
 ```typescript
-import { runMigration, createLogger } from 'clickhouse-migrations';
+import { runMigration, createLogger } from '@volkagames/clickhouse-migrations';
 
 async function applyMigrations() {
   const logger = createLogger();
@@ -676,8 +679,8 @@ async function invalidConfiguration() {
 ### TypeScript Types
 
 ```typescript
-import type { MigrationRunConfig } from 'clickhouse-migrations';
-import { createLogger } from 'clickhouse-migrations';
+import type { MigrationRunConfig } from '@volkagames/clickhouse-migrations';
+import { createLogger } from '@volkagames/clickhouse-migrations';
 
 // Configuration using separate parameters
 const configSeparate: MigrationRunConfig = {
@@ -754,7 +757,7 @@ This project uses modern tooling and follows industry best practices for TypeScr
 Clone the repository and install dependencies:
 
 ```sh
-git clone https://github.com/VVVi/clickhouse-migrations.git
+git clone https://github.com/volkagames/clickhouse-migrations.git
 cd clickhouse-migrations
 bun install
 ```
@@ -868,13 +871,47 @@ Lint without fixing:
 bun run lint
 ```
 
+#### Git Hooks
+
+This project uses [Husky](https://typicode.github.io/husky/) to enforce code quality via Git hooks:
+
+**pre-commit** - Runs before each commit:
+- Unit tests (`bun run test:unit`)
+- Biome check (linting and formatting)
+- TypeScript compilation check
+
+**pre-push** - Runs before pushing to remote:
+- Full test suite (`bun run test`)
+- Build verification (`bun run build`)
+
+**commit-msg** - Validates commit message format:
+- Enforces [Conventional Commits](https://www.conventionalcommits.org/) format
+- Valid types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`, `perf`, `ci`, `build`, `revert`
+- Examples:
+  - `feat: add migration rollback support`
+  - `fix(cli): handle missing config file`
+  - `docs: update installation instructions`
+
+Hooks are automatically installed when running `bun install` via the `prepare` script.
+
+**Bypassing hooks** (not recommended):
+```sh
+# Skip pre-commit hook
+git commit --no-verify -m "your message"
+
+# Skip pre-push hook
+git push --no-verify
+```
+
 #### Pre-commit Requirements
 
-Before committing, ensure:
+The Git hooks automatically enforce:
 
-1. All tests pass: `bun run test`
+1. Unit tests pass (pre-commit): `bun run test:unit`
 2. Code is formatted and linted: `bun run check`
-3. Build succeeds: `bun run build`
+3. TypeScript compiles without errors: `bunx tsc --noEmit`
+4. All tests pass (pre-push): `bun run test`
+5. Build succeeds (pre-push): `bun run build`
 
 The `prepublishOnly` script automatically runs tests and checks before publishing.
 
@@ -1409,10 +1446,11 @@ MIT
 
 ## Support
 
-- GitHub Issues: [Report issues](https://github.com/VVVi/clickhouse-migrations/issues)
-- NPM Package: [clickhouse-migrations](https://www.npmjs.com/package/clickhouse-migrations)
+- GitHub Issues: [Report issues](https://github.com/volkagames/clickhouse-migrations/issues)
+- NPM Package: [@volkagames/clickhouse-migrations](https://www.npmjs.com/package/@volkagames/clickhouse-migrations)
 
 ## Related Projects
 
 - [ClickHouse Official Client](https://github.com/ClickHouse/clickhouse-js)
 - [ClickHouse Documentation](https://clickhouse.com/docs)
+- [Original Project (Inactive governance)](https://github.com/VVVi/clickhouse-migrations)

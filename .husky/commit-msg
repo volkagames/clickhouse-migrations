@@ -1,0 +1,27 @@
+# Validate commit message format (Conventional Commits)
+commit_msg=$(cat "$1")
+
+# Pattern for conventional commits: type(scope?): subject
+# Types: feat, fix, docs, style, refactor, test, chore, perf, ci, build, revert
+pattern="^(feat|fix|docs|style|refactor|test|chore|perf|ci|build|revert)(\(.+\))?: .{3,}"
+
+if ! echo "$commit_msg" | grep -qE "$pattern"; then
+  echo "❌ Invalid commit message format!"
+  echo ""
+  echo "Commit message must follow Conventional Commits format:"
+  echo "  <type>[optional scope]: <description>"
+  echo ""
+  echo "Types: feat, fix, docs, style, refactor, test, chore, perf, ci, build, revert"
+  echo ""
+  echo "Examples:"
+  echo "  feat: add migration rollback support"
+  echo "  fix(cli): handle missing config file"
+  echo "  docs: update installation instructions"
+  echo "  test: add integration tests for migrations"
+  echo ""
+  echo "Your commit message:"
+  echo "  $commit_msg"
+  exit 1
+fi
+
+echo "✅ Commit message format is valid"

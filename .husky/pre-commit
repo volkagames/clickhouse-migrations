@@ -1,0 +1,13 @@
+# Run unit tests (fast checks before commit)
+echo "🧪 Running unit tests..."
+bun run test:unit
+
+# Run Biome check (lint + format)
+echo "🔍 Running Biome check..."
+bun run check
+
+# Check if there are TypeScript errors
+echo "🔨 Running TypeScript check..."
+bunx tsc --noEmit
+
+echo "✅ Pre-commit checks passed!"

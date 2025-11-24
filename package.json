@@ -1,5 +1,5 @@
 {
-  "name": "clickhouse-migrations",
+  "name": "@volkagames/clickhouse-migrations",
   "version": "1.2.0",
   "description": "ClickHouse Migrations",
   "bin": {
@@ -29,15 +29,24 @@
   "packageManager": "bun@1.2.23",
   "private": false,
   "license": "MIT",
-  "author": "VVVi",
+  "author": "alfatm",
+  "contributors": [
+    {
+      "name": "VVVi",
+      "url": "https://github.com/VVVi"
+    }
+  ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/VVVi/clickhouse-migrations.git"
+    "url": "https://github.com/volkagames/clickhouse-migrations.git"
   },
   "bugs": {
-    "url": "https://github.com/VVVi/clickhouse-migrations/issues"
+    "url": "https://github.com/volkagames/clickhouse-migrations/issues"
   },
-  "homepage": "https://github.com/VVVi/clickhouse-migrations#readme",
+  "homepage": "https://github.com/volkagames/clickhouse-migrations#readme",
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "preinstall": "npx only-allow bun",
     "build": "rollup -c",
@@ -51,7 +60,7 @@
     "format": "biome format --write ./src ./tests",
     "lint": "biome lint ./src ./tests",
     "check": "biome check --write ./src ./tests",
-    "prepare": "bun run build",
+    "prepare": "husky && bun run build",
     "prepublishOnly": "bun run test && bun run check",
     "preversion": "bun run check",
     "version": "bun run format && git add -A src",
@@ -69,6 +78,7 @@
     "@types/node": "^24.2.1",
     "@vitest/coverage-v8": "4.0.13",
     "@vitest/ui": "^4.0.13",
+    "husky": "^9.1.7",
     "rollup": "^4.53.3",
     "rollup-plugin-preserve-shebang": "^1.0.1",
     "tslib": "^2.8.1",

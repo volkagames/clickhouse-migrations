@@ -1,0 +1,9 @@
+# Run all tests before pushing
+echo "🧪 Running tests..."
+bun run test
+
+# Run build to ensure everything compiles
+echo "🔨 Running build..."
+bun run build
+
+echo "✅ Pre-push checks passed! Ready to push."
