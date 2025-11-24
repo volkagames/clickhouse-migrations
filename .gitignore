@@ -1,7 +1,7 @@
 node_modules
 .DS_Store
 
-/lib
+/dist
 /coverage
 
 # Lock files - only bun.lock is used

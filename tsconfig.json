@@ -8,6 +8,7 @@
     "moduleResolution": "node",
     "strict": true,
     "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
     "skipLibCheck": true,
     "noImplicitAny": true,
     "noImplicitOverride": true,
@@ -27,7 +28,7 @@
     "allowUnusedLabels": false,
     "allowUnreachableCode": false,
     "rootDir": "./src",
-    "outDir": "./lib"
+    "outDir": "./dist"
   },
   "include": [
     "src",
@@ -36,6 +37,6 @@
   "exclude": [
     "node_modules",
     "tests",
-    "lib"
+    "dist"
   ]
 }

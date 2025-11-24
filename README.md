@@ -765,15 +765,21 @@ bun install
 clickhouse-migrations/
 ├── src/              # TypeScript source files
 │   ├── cli.ts        # Command-line interface
+│   ├── cli-setup.ts  # CLI setup and configuration
 │   ├── migrate.ts    # Migration logic
 │   ├── sql-parse.ts  # SQL parser
-│   └── logger.ts     # Logging utilities
+│   ├── logger.ts     # Logging utilities
+│   └── dsn-parser.ts # DSN parsing utilities
 ├── tests/            # Test files
 │   ├── *.unit.test.ts       # Unit tests
 │   ├── *.integration.test.ts # Integration tests
 │   └── *.e2e.test.ts        # End-to-end tests
-├── lib/              # Compiled JavaScript output (gitignored)
+├── dist/             # Compiled JavaScript output (gitignored)
+│   ├── migrate.js    # ESM library bundle
+│   ├── migrate.cjs   # CommonJS library bundle
+│   └── cli.js        # CLI executable
 ├── migrations/       # Example migrations
+├── rollup.config.js  # Rollup bundler configuration
 └── biome.json        # Biome configuration
 ```
 
@@ -781,13 +787,18 @@ clickhouse-migrations/
 
 #### Build
 
-Compile TypeScript to JavaScript:
+Compile TypeScript to JavaScript using Rollup:
 
 ```sh
 bun run build
 ```
 
-Output is generated in the `lib/` directory.
+Output is generated in the `dist/` directory:
+- `dist/migrate.js` - ESM library bundle (for `import`)
+- `dist/migrate.cjs` - CommonJS library bundle (for `require()`)
+- `dist/cli.js` - CLI executable with shebang
+- `dist/*.d.ts` - TypeScript type definitions
+- `dist/*.map` - Source maps for debugging
 
 #### Testing
 
@@ -880,10 +891,26 @@ The project enforces strict code style rules via Biome:
 
 See [biome.json](biome.json) for the complete configuration.
 
+### Build System
+
+The project uses **Rollup** for bundling with the following outputs:
+
+- **ESM bundle** (`dist/migrate.js`) - Modern ES modules for `import`
+- **CommonJS bundle** (`dist/migrate.cjs`) - Legacy format for `require()`
+- **CLI bundle** (`dist/cli.js`) - Self-contained executable with shebang
+
+This dual-package approach ensures compatibility with all modern JavaScript environments:
+- Node.js >= 20 (both ESM and CommonJS projects)
+- Bun >= 1.2.23
+- Modern bundlers (webpack, esbuild, vite, etc.)
+
+See [rollup.config.js](rollup.config.js) for the build configuration.
+
 ### TypeScript Configuration
 
 - **Target:** ES2022
 - **Module:** ES2022 (ESM)
+- **Module Resolution:** Node
 - **Strict Mode:** Enabled with additional strict flags
   - `noImplicitAny`
   - `strictNullChecks`
@@ -892,6 +919,8 @@ See [biome.json](biome.json) for the complete configuration.
   - `noFallthroughCasesInSwitch`
   - `noUnusedLocals`
   - `noUnusedParameters`
+  - `allowSyntheticDefaultImports`
+  - `esModuleInterop`
 
 See [tsconfig.json](tsconfig.json) for the complete configuration.
 
@@ -908,11 +937,20 @@ Run tests frequently during development to catch regressions early.
 Run the CLI locally during development:
 
 ```sh
-# Using Bun
-bun run lib/cli.js migrate --host=http://localhost:8123 --migrations-home=./migrations
+# Build first
+bun run build
 
-# Or using Node
-node lib/cli.js migrate --host=http://localhost:8123 --migrations-home=./migrations
+# Using Node
+node dist/cli.js migrate --host=http://localhost:8123 --migrations-home=./migrations
+
+# Or using Bun
+bun dist/cli.js migrate --host=http://localhost:8123 --migrations-home=./migrations
+
+# With debugging output
+node dist/cli.js migrate \
+  --host=http://localhost:8123 \
+  --migrations-home=./migrations \
+  --log-level=debug
 ```
 
 ### Common Development Tasks

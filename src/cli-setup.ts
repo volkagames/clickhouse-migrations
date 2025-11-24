@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { Command } from 'commander'
 import { createLogger, type LogFormat, type MinLogLevel } from './logger'
 import { displayMigrationStatus, getMigrationStatus, runMigration } from './migrate'
@@ -46,9 +47,12 @@ export const parseBoolean = (value: unknown, defaultValue = true): boolean => {
 }
 
 // Read version from package.json
-// When compiled to lib/, we need to go up one directory to find package.json
+// When compiled to dist/, we need to go up one directory to find package.json
 export const getVersion = (): string | undefined => {
-  // __dirname in CommonJS points to lib/ after compilation, so we go up to project root
+  // In ES modules, we need to derive __dirname from import.meta.url
+  const __filename = fileURLToPath(import.meta.url)
+  const __dirname = dirname(__filename)
+  // __dirname points to dist/ after compilation, so we go up to project root
   const packageJsonPath = join(__dirname, '..', 'package.json')
   const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'))
   return packageJson.version
