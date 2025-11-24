@@ -4,6 +4,24 @@
 
 ### Features
 
+* **Dual-Package Support**: migrate to Rollup with ESM/CJS dual-package support
+  - Enable both ES modules and CommonJS compatibility
+  - Improve module resolution and bundling
+  - Better support for modern JavaScript ecosystems
+
+* **Configurable Migration Table**: add configurable migration table name with default '_migrations'
+  - Allow customization of migrations tracking table name
+  - Improve flexibility for different deployment scenarios
+
+* **Utility Functions Export**: export utility functions to make them accessible for external use and improve modularity
+  - Enable programmatic access to internal utilities
+  - Better integration with custom tooling
+
+* **Structured Logging**: add structured JSON logging with severity levels, filtering, and custom prefixes
+  - Support for JSON output format
+  - Configurable log severity levels
+  - Custom log prefixes for better log organization
+
 * **DSN Support**: add Data Source Name (DSN) connection string support with ClickHouse settings via query parameters
   - Enable connection configuration through single DSN string
   - Support for ClickHouse settings as URL query parameters
@@ -28,7 +46,9 @@
 
 * **Centralized Logging**: separate CLI logic and add centralized logger for consistent output handling
 
-* **Documentation**: add "Philosophy: Forward-Only Migrations" section to README clarifying migration strategy and rationale for no rollback support
+* **Documentation**: enhance installation instructions and clarify DSN usage
+  - Add "Philosophy: Forward-Only Migrations" section to README clarifying migration strategy and rationale for no rollback support
+  - Improve documentation for additional options
 
 ### Bug Fixes
 
@@ -61,9 +81,29 @@
 
 ### Code Refactoring
 
+* **Module System**: migrate to ES2020 for improved module support and modern JavaScript features
+  - Upgrade TypeScript target to ES2020
+  - Better async/await support and language features
+  - Improved compatibility with modern tooling
+
+* **Build System**: migrate to Rollup for optimized dual-package builds
+  - Generate both ESM and CJS outputs
+  - Better tree-shaking and bundle optimization
+  - Improved source mapping
+
+* **Logger Architecture**: remove global logger instance for better modularity
+  - Eliminate global state
+  - Improve testability and flexibility
+  - Enable better dependency injection
+
+* **Type Definitions**: remove redundant cli.d.ts type separation
+  - Consolidate type definitions
+  - Improve type consistency
+
 * **Test Framework**: migrate from Jest to Vitest
   - Improve test performance and developer experience
   - Better ESM support and faster execution
+  - Apply Biome formatting and linting to test suite
 
 * **Build Tooling**: migrate to Bun and Biome for modernized tooling
   - Replace npm/yarn with Bun for faster package management
@@ -78,7 +118,7 @@
   - Update file reading to use async/await
   - Better performance and error handling during TLS configuration
 
-* **Type Safety**: upgrade TypeScript target to ES2020 and add additional compiler options for better type safety and code quality
+* **Package Configuration**: add src directory mapping to package.json for better module resolution
 
 ## [1.2.0](https://github.com/VVVi/clickhouse-migrations/compare/v1.1.3...v1.2.0) (2025-11-21)
 
