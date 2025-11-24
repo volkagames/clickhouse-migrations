@@ -73,7 +73,7 @@ jobs:
 
       - name: Test - apply migrations ./tests/migrations/few
         run: |
-          node ./lib/cli.js migrate --host=http://localhost:8123 --user=default --password='' --db=analytics --migrations-home=./tests/migrations/few
+          node ./dist/cli.js migrate --host=http://localhost:8123 --user=default --password='' --db=analytics --migrations-home=./tests/migrations/few
 
       - name: Verify Migration
         run: |

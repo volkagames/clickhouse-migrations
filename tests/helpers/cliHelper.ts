@@ -42,7 +42,7 @@ export interface ExecOptions {
  * ```
  */
 export function buildCliCommand(command: string, options: CliOptions = {}): string {
-  const cliPath = path.join(__dirname, '..', '..', 'lib', 'cli.js')
+  const cliPath = path.join(__dirname, '..', '..', 'dist', 'cli.js')
   const args = Object.entries(options)
     .filter(([_, value]) => value !== undefined)
     .map(([key, value]) => {
@@ -96,7 +96,7 @@ export async function runCliCommand(
  * @returns Absolute path to cli.js
  */
 export function getCliPath(): string {
-  return path.join(__dirname, '..', '..', 'lib', 'cli.js')
+  return path.join(__dirname, '..', '..', 'dist', 'cli.js')
 }
 
 /**
