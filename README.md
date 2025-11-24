@@ -10,6 +10,39 @@ Run migrations from the command line or embed them in your application. Track wh
 
 Forked from [VVVi/clickhouse-migrations](https://github.com/VVVi/clickhouse-migrations).
 
+## What's New in 2.0.0
+
+Version 2.0.0 brings significant improvements and breaking changes:
+
+- **Package Rename**: Now published as `@volkagames/clickhouse-migrations` (scoped package)
+- **Modern Build System**: Full ESM/CJS dual-package support with Rollup
+- **Updated Output**: Build artifacts now in `dist/` directory (was `lib/`)
+- **Active Maintenance**: Fork with ongoing development and governance
+- **Enhanced Tooling**: Husky git hooks, VSCode workspace config, Biome formatting
+
+### Migrating from 1.x
+
+If you're upgrading from version 1.x or the original package:
+
+```sh
+# Uninstall old package
+npm uninstall clickhouse-migrations
+
+# Install new scoped package
+npm install @volkagames/clickhouse-migrations
+```
+
+Update your imports:
+```typescript
+// Old (1.x)
+import { runMigration } from 'clickhouse-migrations';
+
+// New (2.0.0)
+import { runMigration } from '@volkagames/clickhouse-migrations';
+```
+
+All other APIs remain backward compatible. See the [CHANGELOG](./CHANGELOG.md) for complete details.
+
 ## Features
 
 - **Sequential Migration Management** - Apply migrations in order with version tracking
@@ -24,6 +57,7 @@ Forked from [VVVi/clickhouse-migrations](https://github.com/VVVi/clickhouse-migr
 
 ## Table of Contents
 
+- [What's New in 2.0.0](#whats-new-in-200)
 - [Installation](#installation)
 - [Quick Start](#quick-start)
 - [Migration File Format](#migration-file-format)

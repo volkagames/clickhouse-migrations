@@ -2,6 +2,28 @@
 
 ## [Unreleased]
 
+## [2.0.0](https://github.com/volkagames/clickhouse-migrations/compare/v1.2.0...v2.0.0) (2025-11-24)
+
+### Breaking Changes
+
+* **Package Rename**: Package renamed from `clickhouse-migrations` to `@volkagames/clickhouse-migrations`
+  - Update import statements to use new package name
+  - This is a fork with active maintenance and governance
+
+* **Build Output**: Build output directory changed from `lib` to `dist`
+  - Update any direct references to built files
+  - Binary path now `dist/cli.js` instead of `lib/cli.js`
+
+* **Module System**: Full ESM/CJS dual-package support with Rollup
+  - Package now provides both ESM (`dist/migrate.js`) and CJS (`dist/migrate.cjs`) builds
+  - Better compatibility with modern JavaScript ecosystems
+  - Proper `exports` field in package.json
+
+* **Repository & Ownership**: Repository transferred to volkagames organization
+  - New repository: https://github.com/volkagames/clickhouse-migrations
+  - New npm package: @volkagames/clickhouse-migrations
+  - Original author credited in contributors
+
 ### Features
 
 * **Dual-Package Support**: migrate to Rollup with ESM/CJS dual-package support
@@ -119,6 +141,18 @@
   - Better performance and error handling during TLS configuration
 
 * **Package Configuration**: add src directory mapping to package.json for better module resolution
+
+### Development
+
+* **Git Hooks**: add Husky for automated code quality checks
+  - pre-commit: Run unit tests, Biome check, and TypeScript validation
+  - pre-push: Run full test suite and build verification
+  - commit-msg: Enforce Conventional Commits format
+
+* **VSCode Configuration**: add workspace settings for consistent development experience
+  - Configure Biome as default formatter
+  - Recommended extensions (Biome, Bun)
+  - Optimal settings for TypeScript and Git workflows
 
 ## [1.2.0](https://github.com/VVVi/clickhouse-migrations/compare/v1.1.3...v1.2.0) (2025-11-21)
 
