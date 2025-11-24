@@ -556,7 +556,7 @@ const applyMigrations = async (
   }
 }
 
-const runMigration = async (config: MigrationRunConfig): Promise<void> => {
+export const runMigration = async (config: MigrationRunConfig): Promise<void> => {
   const conn = setupConnectionConfig(config.dsn, {
     host: config.host,
     username: config.username,
@@ -630,7 +630,7 @@ const runMigration = async (config: MigrationRunConfig): Promise<void> => {
   await client.close()
 }
 
-const getMigrationStatus = async (config: MigrationStatusConfig): Promise<MigrationStatus[]> => {
+export const getMigrationStatus = async (config: MigrationStatusConfig): Promise<MigrationStatus[]> => {
   const conn = setupConnectionConfig(config.dsn, {
     host: config.host,
     username: config.username,
@@ -713,7 +713,7 @@ const getMigrationStatus = async (config: MigrationStatusConfig): Promise<Migrat
   return statusList
 }
 
-const displayMigrationStatus = (statusList: MigrationStatus[], logger: Logger): void => {
+export const displayMigrationStatus = (statusList: MigrationStatus[], logger: Logger): void => {
   const appliedCount = statusList.filter((s) => s.applied).length
   const pendingCount = statusList.filter((s) => !s.applied).length
   const divergentCount = statusList.filter((s) => s.applied && s.checksumMatch === false).length
@@ -741,4 +741,3 @@ const displayMigrationStatus = (statusList: MigrationStatus[], logger: Logger): 
   logger.info('')
 }
 
-export { runMigration, getMigrationStatus, displayMigrationStatus }

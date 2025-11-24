@@ -25,7 +25,7 @@ export type CliParameters = {
 }
 
 // Parses CLI/env booleans: handles 'false', '0', 'no', 'off', 'n' as false
-const parseBoolean = (value: unknown, defaultValue = true): boolean => {
+export const parseBoolean = (value: unknown, defaultValue = true): boolean => {
   if (value === undefined || value === null) {
     return defaultValue
   }
@@ -46,7 +46,7 @@ const parseBoolean = (value: unknown, defaultValue = true): boolean => {
 
 // Read version from package.json
 // When compiled to lib/, we need to go up one directory to find package.json
-const getVersion = (): string | undefined => {
+export const getVersion = (): string | undefined => {
   // __dirname in CommonJS points to lib/ after compilation, so we go up to project root
   const packageJsonPath = join(__dirname, '..', 'package.json')
   const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'))

@@ -209,7 +209,7 @@ const splitByDelimiter = (content: string, delimiter: string): string[] => {
 }
 
 // Extracts executable SQL queries (excludes SET statements)
-const sqlQueries = (content: string): string[] => {
+export const sqlQueries = (content: string): string[] => {
   if (!content || typeof content !== 'string') {
     return []
   }
@@ -223,7 +223,7 @@ const sqlQueries = (content: string): string[] => {
 }
 
 // Extracts SET statements and returns as key-value pairs (e.g., SET foo=bar → {foo: 'bar'})
-const sqlSets = (content: string): Record<string, string> => {
+export const sqlSets = (content: string): Record<string, string> => {
   if (!content || typeof content !== 'string') {
     return {}
   }
@@ -293,4 +293,6 @@ const sqlSets = (content: string): Record<string, string> => {
   return sets
 }
 
-export { sqlQueries, sqlQueries as sql_queries, sqlSets, sqlSets as sql_sets }
+// Aliases for backward compatibility
+export { sqlQueries as sql_queries, sqlSets as sql_sets }
+
