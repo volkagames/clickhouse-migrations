@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+## [2.0.1](https://github.com/volkagames/clickhouse-migrations/compare/v2.0.0...v2.0.1) (2025-11-25)
+
+### Bug Fixes
+
+* **Build Compatibility**: replace runtime package.json reading with compile-time JSON import for better bundler compatibility
+  - Fixes issues with bundlers that don't support dynamic JSON imports
+  - Improves compatibility with various build tools
+  - Resolves module resolution edge cases
+
+* **Code Quality**: fix linting issues to maintain code quality standards
+
 ## [2.0.0](https://github.com/volkagames/clickhouse-migrations/compare/v1.2.0...v2.0.0) (2025-11-24)
 
 ### Breaking Changes
