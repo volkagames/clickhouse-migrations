@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.2](https://github.com/volkagames/clickhouse-migrations/compare/v2.0.1...v2.0.2) (2025-11-25)
+
+
+### Bug Fixes
+
+* add missing @rollup/plugin-json to resolve build error ([a61a48d](https://github.com/volkagames/clickhouse-migrations/commit/a61a48d5947dceef9a154a260116a2c43226c08f))
+
 ## 2.0.1 (2025-11-25)
 
 
