@@ -207,17 +207,47 @@ describe('Test suite', () => {
 
 ## E2E Test Requirements
 
-E2E tests require a running ClickHouse instance:
+E2E tests require running ClickHouse instances. The test setup has been automated to start containers automatically.
+
+### Automated Setup (Recommended)
 
 ```bash
-# Start ClickHouse (if using Docker)
-docker-compose up -d clickhouse
-
-# Run E2E tests
+# Run E2E tests (automatically starts required containers)
 bun run test:e2e
 ```
 
-**Important:** E2E tests will fail with a clear error message if ClickHouse containers are not running. This is intentional to ensure proper test infrastructure in CI/CD environments.
+This command will:
+1. Start both `clickhouse` and `clickhouse_tls` containers
+2. Run all E2E tests
+3. Leave containers running for subsequent test runs
+
+### Manual Container Management
+
+If you prefer to manage containers manually:
+
+```bash
+# Start containers manually
+bun run test:e2e:setup
+
+# Run E2E tests (without starting containers)
+vitest run tests/*.e2e.test.ts
+
+# Stop containers when done
+bun run test:e2e:teardown
+```
+
+### Individual Container Commands
+
+```bash
+# Start specific containers
+docker-compose up -d clickhouse        # For standard E2E tests
+docker-compose up -d clickhouse_tls    # For TLS E2E tests
+
+# Stop all containers
+docker-compose down
+```
+
+**Important:** E2E tests will fail with a clear error message if required ClickHouse containers are not running. This is intentional to ensure proper test infrastructure in CI/CD environments.
 
 ## Troubleshooting
 
@@ -237,17 +267,26 @@ bun run test:e2e
 
 ### E2E tests fail with container errors
 
-E2E tests require running ClickHouse containers. Start them with:
+E2E tests require running ClickHouse containers. The `bun run test:e2e` command automatically starts both required containers (`clickhouse` and `clickhouse_tls`).
+
+If you see container-related errors:
 
 ```bash
-# For standard E2E tests
-docker-compose up -d clickhouse
+# Start containers manually
+bun run test:e2e:setup
 
-# For TLS E2E tests
-docker-compose up -d clickhouse_tls
+# Or start specific containers
+docker-compose up -d clickhouse        # For standard E2E tests
+docker-compose up -d clickhouse_tls    # For TLS E2E tests
 ```
 
 If containers are not running, tests will fail immediately with a clear error message indicating which container is missing.
+
+To verify containers are running:
+
+```bash
+docker ps --filter "name=clickhouse"
+```
 
 ## CI/CD
 
@@ -262,6 +301,58 @@ For publishing, the `prepublishOnly` script automatically runs tests:
 ```bash
 bun publish  # automatically runs: bun run test && bun run check
 ```
+
+### Testing GitHub Workflows Locally with Act
+
+[Act](https://github.com/nektos/act) allows running GitHub Actions workflows locally in Docker containers.
+
+#### Quick Start
+
+```bash
+# Install act (macOS)
+brew install act
+
+# Run unit tests job
+act -j unit-tests
+
+# Run integration tests job
+act schedule -j integration-tests --matrix node:24 --matrix clickhouse:latest
+
+# Run all matrix combinations sequentially (more reliable)
+act -j unit-tests --matrix node:20
+act -j unit-tests --matrix node:22
+act -j unit-tests --matrix node:24
+```
+
+#### Common Issues and Solutions
+
+**Issue: `actions-setup-node@v4` MODULE_NOT_FOUND**
+
+Clear corrupted action cache:
+```bash
+rm -rf ~/.cache/act/actions-setup-node@v4/
+```
+
+**Issue: Parallel matrix jobs fail**
+
+Run matrix combinations sequentially to avoid cache conflicts:
+```bash
+act schedule -j integration-tests --matrix node:20 --matrix clickhouse:latest
+act schedule -j integration-tests --matrix node:22 --matrix clickhouse:latest
+act schedule -j integration-tests --matrix node:24 --matrix clickhouse:latest
+```
+
+**Expected Results:**
+- Unit tests: 165/165 ✅
+- Integration tests: ~11-12/12 ✅ (TLS test may occasionally timeout)
+
+#### Configuration
+
+The project is configured for act compatibility:
+- Docker networking: `DOCKER_NETWORK_MODE=host` in CI
+- ClickHouse readiness checks with `SELECT 1` query validation
+- Docker compose v2 syntax
+- Logging: `DOCKER_LOGGING_DRIVER=none` to reduce noise
 
 ## Migration from Jest
 

@@ -171,13 +171,14 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Start ClickHouse ${{ matrix.clickhouse }}
-        uses: isbang/compose-action@v2.3.0
+      - name: Start ClickHouse ${{ matrix.clickhouse }} and wait for healthcheck
         env:
           CLICKHOUSE_VERSION: ${{ matrix.clickhouse }}
-        with:
-          compose-file: 'docker-compose.yml'
-          down-flags: '--volumes'
+          DOCKER_NETWORK_MODE: host
+          DOCKER_LOGGING_DRIVER: none
+        run: |
+          docker compose up -d --wait
+          echo "✓ ClickHouse is ready (healthcheck passed)!"
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -231,3 +232,7 @@ jobs:
         timeout-minutes: 10
         env:
           CI: true
+
+      - name: Cleanup Docker Compose
+        if: always()
+        run: docker compose down --volumes

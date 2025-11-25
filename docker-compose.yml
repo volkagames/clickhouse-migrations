@@ -2,35 +2,61 @@
 
 services:
   clickhouse:
-    container_name: 'clickhouse-server'
-    image: 'clickhouse/clickhouse-server:${CLICKHOUSE_VERSION-25.6-alpine}'
+    container_name: "clickhouse-server"
+    image: "clickhouse/clickhouse-server:${CLICKHOUSE_VERSION-25.6-alpine}"
     environment:
       CLICKHOUSE_SKIP_USER_SETUP: 1
+    # Use host mode for CI/act compatibility, otherwise standard port mapping
+    network_mode: ${DOCKER_NETWORK_MODE:-bridge}
     ports:
-      - '8123:8123'
-      - '9000:9000'
+      - "8123:8123"
+      - "9000:9000"
     ulimits:
       nofile:
         soft: 262144
         hard: 262144
     volumes:
-      - './.docker/clickhouse/config.xml:/etc/clickhouse-server/config.xml'
-      - './.docker/clickhouse/users.xml:/etc/clickhouse-server/users.xml'
+      - "./.docker/clickhouse/config.xml:/etc/clickhouse-server/config.xml"
+      - "./.docker/clickhouse/users.xml:/etc/clickhouse-server/users.xml"
+    healthcheck:
+      test: ["CMD", "clickhouse-client", "--port", "9000", "--query", "SELECT 1"]
+      interval: 5s
+      timeout: 10s
+      retries: 5
+      start_period: 10s
 
   clickhouse_tls:
     build:
       context: ./
       dockerfile: .docker/clickhouse_tls/Dockerfile
-    container_name: 'clickhouse-server-tls'
+    container_name: "clickhouse-server-tls"
     environment:
       CLICKHOUSE_SKIP_USER_SETUP: 1
+    # Use host mode for CI/act compatibility, otherwise standard port mapping
+    network_mode: ${DOCKER_NETWORK_MODE:-bridge}
     ports:
-      - '8443:8443'
-      - '9440:9440'
+      - "8443:8443"
+      - "9440:9440"
     ulimits:
       nofile:
         soft: 262144
         hard: 262144
     volumes:
-      - './.docker/clickhouse_tls/config.xml:/etc/clickhouse-server/config.xml'
-      - './.docker/clickhouse_tls/users.xml:/etc/clickhouse-server/users.xml'
+      - "./.docker/clickhouse_tls/config.xml:/etc/clickhouse-server/config.xml"
+      - "./.docker/clickhouse_tls/users.xml:/etc/clickhouse-server/users.xml"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "clickhouse-client",
+          "--secure",
+          "--port",
+          "9440",
+          "--accept-invalid-certificate",
+          "--query",
+          "SELECT 1",
+        ]
+      interval: 5s
+      timeout: 10s
+      retries: 5
+      start_period: 10s
