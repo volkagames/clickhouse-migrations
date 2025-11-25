@@ -17,15 +17,35 @@
 # - release-please: Manages release PR creation and GitHub releases
 # - publish: Builds, tests, and publishes the package to npm (only on release)
 #
-# Required Secrets:
-# - NPM_TOKEN: npm authentication token with publish access to @volkagames scope
+# Authentication:
+# - Uses OIDC Trusted Publisher for secure, automated npm publishing
+# - No secrets required - GitHub issues short-lived tokens automatically
+# - Must be configured in npm package settings (see setup instructions below)
+#
+# Setup Instructions for Trusted Publisher:
+# 1. Go to https://www.npmjs.com/package/@volkagames/clickhouse-migrations/access
+# 2. Scroll to "Publishing access" section
+# 3. Click "Add trusted publisher"
+# 4. Fill in:
+#    - Provider: GitHub Actions
+#    - Organization: volkagames
+#    - Repository: clickhouse-migrations
+#    - Workflow: release.yml
+#    - Environment: (leave blank)
 #
 # Documentation:
 # - Release Please: https://github.com/googleapis/release-please
 # - Conventional Commits: https://www.conventionalcommits.org/
+# - OIDC Publishing: https://docs.npmjs.com/generating-provenance-statements
 # ============================================================================
 
 name: Release
+
+# Required permissions for OIDC authentication with npm
+permissions:
+  contents: write  # Needed for Release Please to create releases
+  id-token: write  # Needed for OIDC authentication with npm
+  pull-requests: write  # Needed for Release Please to create PRs
 
 on:
   push:
@@ -99,12 +119,5 @@ jobs:
       - name: Build Package
         run: bun run build
 
-      - name: Publish to npm
-        run: |
-          # Configure npm authentication
-          echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
-
-          # Publish the package to npm with public access
-          bun publish --access public
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Publish to npm with OIDC
+        run: npm publish --provenance --access public
