@@ -1,30 +1,110 @@
-name: release-please
+# ============================================================================
+# Release Workflow
+# ============================================================================
+# This workflow automates the release process for the ClickHouse Migrations package.
+#
+# Workflow Overview:
+# 1. Release Please creates/updates a release PR when changes are pushed to main
+# 2. When the release PR is merged, it creates a GitHub release and git tag
+# 3. The package is then built, tested, and published to npm
+#
+# Triggers:
+# - Runs on every push to the main branch
+# - Release Please analyzes commit messages using Conventional Commits
+# - Creates/updates a release PR with changelog and version bump
+#
+# Jobs:
+# - release-please: Manages release PR creation and GitHub releases
+# - publish: Builds, tests, and publishes the package to npm (only on release)
+#
+# Required Secrets:
+# - NPM_TOKEN: npm authentication token with publish access to @volkagames scope
+#
+# Documentation:
+# - Release Please: https://github.com/googleapis/release-please
+# - Conventional Commits: https://www.conventionalcommits.org/
+# ============================================================================
+
+name: Release
 
 on:
   push:
     branches:
       - main
+
 jobs:
+  # ============================================================================
+  # Release Please Job
+  # ============================================================================
+  # Manages the release process by analyzing commit messages and creating
+  # release PRs with automatic version bumping and changelog generation.
+  #
+  # Outputs:
+  # - release_created: Boolean indicating if a new release was created
+  # - tag_name: The git tag for the release (e.g., "v2.0.0")
+  # ============================================================================
   release-please:
+    name: Create Release
     runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
     steps:
-      - uses: googleapis/release-please-action@v4
+      - name: Run Release Please
+        uses: googleapis/release-please-action@v4
         id: release
         with:
+          # Configuration for Node.js package releases
           release-type: node
 
-      # publish npm:
-      - uses: actions/checkout@v4
-        # a publication only occurs when a new release is created:
-        if: ${{ steps.release.outputs.release_created }}
-      - uses: actions/setup-node@v4
+  # ============================================================================
+  # Publish Job
+  # ============================================================================
+  # Builds, tests, and publishes the package to npm registry.
+  # Only runs when a new release is created by Release Please.
+  #
+  # Steps:
+  # 1. Checkout the repository code
+  # 2. Set up Bun (required by package.json engines)
+  # 3. Install project dependencies
+  # 4. Run linting and formatting checks
+  # 5. Run all tests (unit, integration, e2e)
+  # 6. Build the distributable package
+  # 7. Publish to npm registry
+  # ============================================================================
+  publish:
+    name: Build and Publish to npm
+    runs-on: ubuntu-latest
+    needs: release-please
+    # Only run this job if a new release was created
+    if: ${{ needs.release-please.outputs.release_created }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
         with:
-          node-version: 20
-          registry-url: 'https://registry.npmjs.org'
-        if: ${{ steps.release.outputs.release_created }}
-      - run: npm ci
-        if: ${{ steps.release.outputs.release_created }}
-      - run: npm publish
+          bun-version: 1.2.23
+
+      - name: Install Dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Run Code Quality Checks
+        run: bun run check
+
+      - name: Run Tests
+        run: bun run test
+
+      - name: Build Package
+        run: bun run build
+
+      - name: Publish to npm
+        run: |
+          # Configure npm authentication
+          echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
+
+          # Publish the package to npm with public access
+          bun publish --access public
         env:
-          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
-        if: ${{ steps.release.outputs.release_created }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

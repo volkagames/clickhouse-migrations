@@ -1,56 +1,152 @@
-name: 'tests'
+# ============================================================================
+# Test Workflow
+# ============================================================================
+# This workflow runs comprehensive tests for the ClickHouse Migrations package
+# across multiple Node.js versions and ClickHouse versions.
+#
+# Workflow Overview:
+# 1. Code Quality: Runs linting and formatting checks
+# 2. Unit Tests: Fast, isolated tests without external dependencies
+# 3. Integration Tests: Tests against real ClickHouse instances
+# 4. E2E Tests: End-to-end CLI testing with migration verification
+#
+# Triggers:
+# - Manual dispatch: Can be triggered manually from GitHub Actions UI
+# - Push to main: Runs on every push to main branch (except markdown changes)
+# - Scheduled: Runs daily at 9:00 AM UTC to catch issues early
+#
+# Test Matrix:
+# - Node.js versions: 20, 22, 24 (covering LTS and current releases)
+# - ClickHouse versions: latest stable and head (development version)
+#
+# Jobs:
+# - code-quality: Linting and formatting checks
+# - unit-tests: Fast unit tests across Node.js versions
+# - integration-tests: Tests against real ClickHouse instances
+#
+# Documentation:
+# - Vitest: https://vitest.dev/
+# - ClickHouse: https://clickhouse.com/docs
+# ============================================================================
+
+name: Tests
 
 on:
+  # Allow manual workflow trigger
   workflow_dispatch:
+
+  # Run on pushes to main branch
   push:
     branches:
       - main
+    # Skip workflow if only documentation changed
     paths-ignore:
       - '**/*.md'
 
+  # Run daily to catch integration issues early
   schedule:
+    # Runs at 9:00 AM UTC every day
     - cron: '0 9 * * *'
 
 jobs:
-  unit-tests:
+  # ============================================================================
+  # Code Quality Job
+  # ============================================================================
+  # Runs linting and formatting checks using Biome to ensure code quality
+  # standards are met before running tests.
+  # ============================================================================
+  code-quality:
+    name: Code Quality (Lint & Format)
     runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.2.23
+
+      - name: Install Dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Run Linting
+        run: bun run lint
+
+      - name: Run Code Quality Checks
+        run: bun run check
+
+  # ============================================================================
+  # Unit Tests Job
+  # ============================================================================
+  # Runs fast, isolated unit tests across multiple Node.js versions.
+  # These tests don't require external dependencies like databases.
+  #
+  # Matrix Strategy:
+  # - Tests on Node.js 20 (LTS), 22 (LTS), and 24 (Current)
+  # - Fails fast to save CI resources if a version fails
+  # ============================================================================
+  unit-tests:
+    name: Unit Tests (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    needs: code-quality
     strategy:
       fail-fast: true
       matrix:
         node: [20, 22, 24]
     steps:
-      - uses: actions/checkout@main
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-      - name: Setup NodeJS ${{ matrix.node }}
-        uses: actions/setup-node@v5
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.2.23
+
+      - name: Setup Node.js ${{ matrix.node }}
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
 
-      - name: Install dependencies
-        run: |
-          npm ci
+      - name: Install Dependencies
+        run: bun install --frozen-lockfile
 
-      - name: Linting
-        run: |
-          npm run lint
+      - name: Run Unit Tests
+        run: bun run test:unit
 
-      - name: Unit testing
-        run: |
-          npm run test:unit
-
-  node-integration-tests-local-single-node:
-    needs: unit-tests
+  # ============================================================================
+  # Integration Tests Job
+  # ============================================================================
+  # Runs integration and E2E tests against real ClickHouse instances.
+  # Tests the CLI and migration functionality with actual databases.
+  #
+  # Matrix Strategy:
+  # - Node.js versions: 20, 22, 24
+  # - ClickHouse versions:
+  #   - latest: Current stable release
+  #   - head: Development version (catches upcoming breaking changes)
+  #
+  # Test Steps:
+  # 1. Start ClickHouse in Docker
+  # 2. Build the CLI tool
+  # 3. Run migration tests against the database
+  # 4. Verify migrations were applied correctly
+  # 5. Run TLS/SSL integration tests
+  # ============================================================================
+  integration-tests:
+    name: Integration Tests (Node ${{ matrix.node }}, ClickHouse ${{ matrix.clickhouse }})
     runs-on: ubuntu-latest
+    needs: unit-tests
     strategy:
       fail-fast: true
       matrix:
         node: [20, 22, 24]
-        clickhouse: [head, latest]
-
+        clickhouse: [latest, head]
     steps:
-      - uses: actions/checkout@main
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-      - name: Start ClickHouse (version - ${{ matrix.clickhouse }}) in Docker
+      - name: Start ClickHouse ${{ matrix.clickhouse }}
         uses: isbang/compose-action@v2.3.0
         env:
           CLICKHOUSE_VERSION: ${{ matrix.clickhouse }}
@@ -58,42 +154,55 @@ jobs:
           compose-file: 'docker-compose.yml'
           down-flags: '--volumes'
 
-      - name: Setup NodeJS ${{ matrix.node }}
-        uses: actions/setup-node@v5
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.2.23
+
+      - name: Setup Node.js ${{ matrix.node }}
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
 
-      - name: Install dependencies
-        run: |
-          npm ci
+      - name: Install Dependencies
+        run: bun install --frozen-lockfile
 
-      - name: Build
-        run: |
-          npm run build
+      - name: Build Package
+        run: bun run build
 
-      - name: Test - apply migrations ./tests/migrations/few
+      - name: Apply Test Migrations
         run: |
-          node ./dist/cli.js migrate --host=http://localhost:8123 --user=default --password='' --db=analytics --migrations-home=./tests/migrations/few
+          node ./dist/cli.js migrate \
+            --host=http://localhost:8123 \
+            --user=default \
+            --password='' \
+            --db=analytics \
+            --migrations-home=./tests/migrations/few
 
-      - name: Verify Migration
+      - name: Verify Migrations Applied
         run: |
-          echo "Checking if tables exist..."
+          echo "Verifying that migration tables were created..."
+
+          # Query ClickHouse for expected tables
           response=$(curl -s "http://localhost:8123/?query=SELECT%20groupArray(name)%20FROM%20system.tables%20WHERE%20name%20IN%20('_migrations','events','sessions')%20AND%20database%20=%20'analytics'")
-          echo "Response: $response"
 
+          echo "Database response: $response"
+
+          # Expected tables array from migrations
           expected_tables="['_migrations','events','sessions']"
 
+          # Verify all tables were created
           if [ "$response" = "$expected_tables" ]; then
-            echo "The tables were created successfully."
+            echo "✓ All migration tables created successfully"
           else
-            echo "Tables were not found!"
+            echo "✗ Migration verification failed!"
             echo "Expected: $expected_tables"
             echo "Got: $response"
             exit 1
           fi
 
-      - name: Run TLS CLI Integration Tests
-        run: npm test -- --testPathPatterns=tls.e2e.test.ts --verbose
+      - name: Run TLS Integration Tests
+        run: bun test -- --testPathPatterns=tls.e2e.test.ts --verbose
         timeout-minutes: 10
         env:
           CI: true
