@@ -83,7 +83,7 @@ describe('TLS CLI Integration Tests', () => {
         {
           host: 'https://localhost:8443',
           user: 'cert_user',
-          password: '',
+          // Note: password is intentionally omitted for certificate-only authentication
           db: dbName,
           'migrations-home': testMigrationsDir,
           'ca-cert': caCertPath,

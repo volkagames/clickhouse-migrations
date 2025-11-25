@@ -1,35 +1,28 @@
 import * as fs from 'node:fs'
+import * as clickhouse from '@clickhouse/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { createLogger } from '../src/logger'
+import { runMigration } from '../src/migrate'
+import { createMockClickHouseClient } from './helpers/mockClickHouseClient'
 import { MIGRATION_WITH_TLS_TIMEOUT } from './helpers/testConstants'
 import { cleanupTest } from './helpers/testSetup'
 import { getTLSCertificatePaths } from './helpers/tlsHelper'
 
 // Mock the ClickHouse client to capture the connection parameters
-const { mockCreateClient, mockClickHouseClient } = vi.hoisted(() => {
-  const mockClickHouseClient = {
-    query: vi.fn(() => Promise.resolve({ json: () => [] })),
-    exec: vi.fn(() => Promise.resolve({})),
-    insert: vi.fn(() => Promise.resolve({})),
-    close: vi.fn(() => Promise.resolve()),
-    ping: vi.fn(() => Promise.resolve()),
-  }
-  const mockCreateClient = vi.fn(() => mockClickHouseClient)
-  return { mockCreateClient, mockClickHouseClient }
-})
+const { mockClient } = createMockClickHouseClient()
 
 vi.mock('@clickhouse/client', () => ({
-  createClient: mockCreateClient.mockReturnValue(mockClickHouseClient),
+  createClient: vi.fn(() => mockClient),
 }))
 
-import { createLogger } from '../src/logger'
-import { runMigration } from '../src/migrate'
+const mockCreateClient = clickhouse.createClient as unknown as ReturnType<typeof vi.fn>
 
 describe('TLS Configuration Unit Tests', () => {
   const { caCertPath, clientCertPath, clientKeyPath } = getTLSCertificatePaths()
 
   beforeEach(() => {
     vi.clearAllMocks()
-    mockCreateClient.mockReturnValue(mockClickHouseClient)
+    mockCreateClient.mockReturnValue(mockClient)
   })
 
   afterEach(() => {
@@ -160,27 +153,29 @@ describe('TLS Configuration Unit Tests', () => {
       const migrationCall = calls.find((call) => call[0] && 'database' in call[0])
 
       // Verify database creation call
+      // Note: password should NOT be present when using certificate authentication
       expect(dbCreationCall).toBeDefined()
       expect(dbCreationCall?.[0]).toMatchObject({
         url: 'https://secure-clickhouse:8443',
         username: 'default',
-        password: 'password',
         application: 'clickhouse-migrations',
         request_timeout: MIGRATION_WITH_TLS_TIMEOUT,
       })
       expect(dbCreationCall?.[0]).toHaveProperty('tls')
+      expect(dbCreationCall?.[0]).not.toHaveProperty('password')
 
       // Verify migration call
+      // Note: password should NOT be present when using certificate authentication
       expect(migrationCall).toBeDefined()
       expect(migrationCall?.[0]).toMatchObject({
         url: 'https://secure-clickhouse:8443',
         username: 'default',
-        password: 'password',
         database: 'analytics',
         application: 'clickhouse-migrations',
         request_timeout: MIGRATION_WITH_TLS_TIMEOUT,
       })
       expect(migrationCall?.[0]).toHaveProperty('tls')
+      expect(migrationCall?.[0]).not.toHaveProperty('password')
     })
   })
 

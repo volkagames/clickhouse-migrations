@@ -8,7 +8,7 @@ describe('TLS Certificate Support Tests', () => {
 
   describe('CLI certificate options parsing', () => {
     it('should parse ca_cert command line option without syntax errors', async () => {
-      const command = `node ./dist/cli.js migrate --host=https://secure-clickhouse:8443 --user=default --password=secure123 --db=analytics --migrations-home=tests/migrations/one --ca-cert=${caCertPath}`
+      const command = `node ./dist/cli.js migrate --host=https://localhost:8443 --user=default --password=secure123 --db=analytics --migrations-home=tests/migrations/one --ca-cert=${caCertPath}`
 
       const result = await execute(command, { cwd: '.' })
 
@@ -22,24 +22,24 @@ describe('TLS Certificate Support Tests', () => {
     })
 
     it('should parse all certificate command line options without syntax errors', async () => {
-      const command = `node ./dist/cli.js migrate --host=https://secure-clickhouse:8443 --user=default --password=secure123 --db=analytics --migrations-home=tests/migrations/one --ca-cert=${caCertPath} --cert=${clientCertPath} --key=${clientKeyPath}`
+      const command = `node ./dist/cli.js migrate --host=https://localhost:8443 --user=default --password=secure123 --db=analytics --migrations-home=tests/migrations/one --ca-cert=${caCertPath} --cert=${clientCertPath} --key=${clientKeyPath}`
 
       const result = await execute(command, { cwd: '.' })
 
       // Should not have parsing errors for any certificate options
       expect(result.stderr).not.toContain('unknown option')
       expect(result.stderr).not.toContain('ca_cert')
-      expect(result.stderr).not.toContain('cert')
-      expect(result.stderr).not.toContain('key')
-      expect(result.stderr).not.toContain('required option')
+      // Check for CLI parsing errors, not connection errors mentioning "certificate"
+      expect(result.stderr).not.toMatch(/unknown.*cert|required.*cert/)
+      expect(result.stderr).not.toMatch(/unknown.*key|required.*key/)
 
-      // Should try to connect (and fail due to fake host)
+      // Should try to connect (and fail due to connection issue or cert/password conflict)
       expect(result.stderr).toContain('Error')
     })
 
     it('should handle certificate environment variables without syntax errors', async () => {
       const envVars = {
-        CH_MIGRATIONS_HOST: 'https://secure-clickhouse:8443',
+        CH_MIGRATIONS_HOST: 'https://localhost:8443',
         CH_MIGRATIONS_USER: 'default',
         CH_MIGRATIONS_PASSWORD: 'secure123',
         CH_MIGRATIONS_DB: 'analytics',
@@ -67,7 +67,7 @@ describe('TLS Certificate Support Tests', () => {
   describe('Certificate file validation', () => {
     it('should handle missing certificate files correctly', async () => {
       const nonExistentPath = '/path/to/nonexistent/ca.crt'
-      const command = `node ./dist/cli.js migrate --host=https://secure-clickhouse:8443 --user=default --password=secure123 --db=analytics --migrations-home=tests/migrations/one --ca-cert=${nonExistentPath}`
+      const command = `node ./dist/cli.js migrate --host=https://localhost:8443 --user=default --password=secure123 --db=analytics --migrations-home=tests/migrations/one --ca-cert=${nonExistentPath}`
 
       const result = await execute(command, { cwd: '.' })
 
@@ -116,7 +116,7 @@ describe('TLS Certificate Support Tests', () => {
 
   describe('Feature integration', () => {
     it('should work with other options like timeout and db-engine', async () => {
-      const command = `node ./dist/cli.js migrate --host=https://secure-clickhouse:8443 --user=default --password=secure123 --db=analytics --migrations-home=tests/migrations/one --db-engine="ENGINE=Atomic" --ca-cert=${caCertPath}`
+      const command = `node ./dist/cli.js migrate --host=https://localhost:8443 --user=default --password=secure123 --db=analytics --migrations-home=tests/migrations/one --db-engine="ENGINE=Atomic" --ca-cert=${caCertPath}`
 
       const result = await execute(command, { cwd: '.' })
 
@@ -129,7 +129,7 @@ describe('TLS Certificate Support Tests', () => {
     })
 
     it('should accept only CA certificate without requiring client cert and key', async () => {
-      const command = `node ./dist/cli.js migrate --host=https://secure-clickhouse:8443 --user=default --password=secure123 --db=analytics --migrations-home=tests/migrations/one --ca-cert=${caCertPath}`
+      const command = `node ./dist/cli.js migrate --host=https://localhost:8443 --user=default --password=secure123 --db=analytics --migrations-home=tests/migrations/one --ca-cert=${caCertPath}`
 
       const result = await execute(command, { cwd: '.' })
 

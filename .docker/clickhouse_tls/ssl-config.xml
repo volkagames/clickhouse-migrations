@@ -1,0 +1,57 @@
+<?xml version="1.0"?>
+<clickhouse>
+    <!-- OpenSSL configuration for TLS support -->
+    <openSSL>
+        <server>
+            <!-- Path to server certificate file -->
+            <certificateFile>/etc/clickhouse-server/certs/server.crt</certificateFile>
+
+            <!-- Path to server private key file -->
+            <privateKeyFile>/etc/clickhouse-server/certs/server.key</privateKeyFile>
+
+            <!-- Path to CA certificate file (for client verification) -->
+            <caConfig>/etc/clickhouse-server/certs/ca.crt</caConfig>
+
+            <!-- Verification mode for client certificates:
+                 - none: don't verify client certificates
+                 - relaxed: verify if provided, but don't require
+                 - strict: require and verify client certificates
+            -->
+            <verificationMode>relaxed</verificationMode>
+
+            <!-- Enable/disable certificate verification -->
+            <loadDefaultCAFile>true</loadDefaultCAFile>
+
+            <!-- Cipher list (optional, use strong ciphers) -->
+            <cipherList>HIGH:!aNULL:!MD5</cipherList>
+
+            <!-- Prefer server ciphers -->
+            <preferServerCiphers>true</preferServerCiphers>
+
+            <!-- Disable old protocols -->
+            <disableProtocols>sslv2,sslv3</disableProtocols>
+        </server>
+
+        <client>
+            <!-- Client configuration (for server-to-server communication) -->
+            <certificateFile>/etc/clickhouse-server/certs/client.crt</certificateFile>
+            <privateKeyFile>/etc/clickhouse-server/certs/client.key</privateKeyFile>
+            <caConfig>/etc/clickhouse-server/certs/ca.crt</caConfig>
+            <verificationMode>relaxed</verificationMode>
+            <loadDefaultCAFile>true</loadDefaultCAFile>
+            <cipherList>HIGH:!aNULL:!MD5</cipherList>
+            <invalidCertificateHandler>
+                <name>RejectCertificateHandler</name>
+            </invalidCertificateHandler>
+        </client>
+    </openSSL>
+
+    <!-- HTTPS port for HTTP interface -->
+    <https_port>8443</https_port>
+
+    <!-- Native protocol with TLS -->
+    <tcp_port_secure>9440</tcp_port_secure>
+
+    <!-- Interserver HTTPS port (for distributed queries) -->
+    <interserver_https_port>9010</interserver_https_port>
+</clickhouse>

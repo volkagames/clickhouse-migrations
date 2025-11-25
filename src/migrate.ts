@@ -217,11 +217,19 @@ const connect = async (config: ConnectionConfig & { host: string }): Promise<Cli
 
   // Optional authentication - if not provided, uses ClickHouse server defaults
   // See: https://clickhouse.com/docs/operations/settings/settings-users
+  // Note: When using certificate authentication (cert + key), we should not set password
+  // to avoid conflicts with ClickHouse's authentication mechanism
+  const usingCertAuth = config.cert && config.key
+
   if (config.username) {
     dbParams.username = config.username
   }
 
-  if (config.password) {
+  // Only set password if:
+  // 1. Password is provided AND not empty, AND
+  // 2. We're NOT using certificate authentication
+  // This allows certificate-only authentication to work properly
+  if (config.password && !usingCertAuth) {
     dbParams.password = config.password
   }
 
