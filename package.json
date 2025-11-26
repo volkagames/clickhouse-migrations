@@ -48,7 +48,6 @@
     "access": "public"
   },
   "scripts": {
-    "preinstall": "npx only-allow bun",
     "build": "rollup -c",
     "test": "vitest run",
     "test:unit": "vitest run tests/*.unit.test.ts",
