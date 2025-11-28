@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.2.0](https://github.com/volkagames/clickhouse-migrations/compare/v2.1.0...v2.2.0) (2025-11-28)
+
+
+### Features
+
+* force release ([40f8385](https://github.com/volkagames/clickhouse-migrations/commit/40f8385ea7f1d23b3fea5d2699e8ca67e5906731))
+
 ## [2.1.0](https://github.com/volkagames/clickhouse-migrations/compare/v2.0.2...v2.1.0) (2025-11-28)
 
 
