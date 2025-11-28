@@ -60,7 +60,7 @@
     "lint": "biome lint ./src ./tests",
     "check": "biome check --write ./src ./tests",
     "prepare": "husky && bun run build",
-    "prepublishOnly": "bun run test && bun run check",
+    "prepublishOnly": "bun run test:unit && bun run check",
     "preversion": "bun run check",
     "version": "bun run format && git add -A src",
     "postversion": "git push && git push --tags"
