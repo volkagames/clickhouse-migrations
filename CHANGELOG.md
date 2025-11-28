@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.0](https://github.com/volkagames/clickhouse-migrations/compare/v2.0.2...v2.1.0) (2025-11-28)
+
+
+### Features
+
+* upgrade @biomejs/biome, @vitest/ui, and vitest to latest versions for better performance and features ([9f2841c](https://github.com/volkagames/clickhouse-migrations/commit/9f2841ca3282b9b3dc7972be9cb1eba61629e914))
+
 ## [2.0.2](https://github.com/volkagames/clickhouse-migrations/compare/v2.0.1...v2.0.2) (2025-11-25)
 
 
