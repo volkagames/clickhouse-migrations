@@ -1,6 +1,6 @@
 {
   "name": "@volkagames/clickhouse-migrations",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "ClickHouse Migrations",
   "bin": {
     "clickhouse-migrations": "dist/cli.js"
