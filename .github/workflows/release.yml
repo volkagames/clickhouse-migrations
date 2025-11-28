@@ -137,7 +137,7 @@ jobs:
         run: bun run check
 
       - name: Run Tests
-        run: bun run test
+        run: bun run test:unit
 
       - name: Build Package
         run: bun run build
