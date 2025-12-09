@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { COLORS, createLogger } from '../src/logger'
+
+import { COLORS, createLogger, levels } from '../src/logger'
 import { cleanupTest, setupConsoleSpy } from './helpers/testSetup'
 
 describe('Logger Module', () => {
@@ -14,338 +15,226 @@ describe('Logger Module', () => {
     cleanupTest()
   })
 
-  describe('ConsoleLogger', () => {
-    describe('info()', () => {
-      it('should log info messages with cyan color and prefix', () => {
-        const logger = createLogger()
-        logger.info('Test info message')
-
-        expect(consoleSpy.consoleLogSpy).toHaveBeenCalledWith(
-          COLORS.CYAN,
-          'clickhouse-migrations :',
-          COLORS.RESET,
-          'Test info message',
-        )
-      })
-
-      it('should handle multiline messages', () => {
-        const logger = createLogger()
-        const message = 'Line 1\nLine 2\nLine 3'
-        logger.info(message)
-
-        expect(consoleSpy.consoleLogSpy).toHaveBeenCalledWith(
-          COLORS.CYAN,
-          'clickhouse-migrations :',
-          COLORS.RESET,
-          message,
-        )
-      })
-    })
-
-    describe('error()', () => {
-      it('should log error messages with red color and Error prefix', () => {
-        const logger = createLogger()
-        logger.error('Test error message')
-
-        expect(consoleSpy.consoleErrorSpy).toHaveBeenCalledWith(
-          COLORS.CYAN,
-          'clickhouse-migrations :',
-          COLORS.RED,
-          'Error: Test error message',
-          '',
-        )
-      })
-
-      it('should include error details when provided', () => {
-        const logger = createLogger()
-        logger.error('Test error message', 'Additional error details')
-
-        expect(consoleSpy.consoleErrorSpy).toHaveBeenCalledWith(
-          COLORS.CYAN,
-          'clickhouse-migrations :',
-          COLORS.RED,
-          'Error: Test error message',
-          '\n\n Additional error details',
-        )
-      })
-
-      it('should handle multiline error details', () => {
-        const logger = createLogger()
-        const details = 'Error line 1\nError line 2'
-        logger.error('Error occurred', details)
-
-        expect(consoleSpy.consoleErrorSpy).toHaveBeenCalledWith(
-          COLORS.CYAN,
-          'clickhouse-migrations :',
-          COLORS.RED,
-          'Error: Error occurred',
-          `\n\n ${details}`,
-        )
-      })
-    })
-
-    describe('warn()', () => {
-      it('should log warning messages with yellow color', () => {
-        const logger = createLogger()
-        logger.warn('Test warning message')
-
-        expect(consoleSpy.consoleLogSpy).toHaveBeenCalledWith(
-          COLORS.YELLOW,
-          '  Warning: Test warning message',
-          COLORS.RESET,
-        )
-      })
-    })
-
-    it('should handle special characters in messages', () => {
-      const logger = createLogger()
-      const specialChars = 'Test with: @#$%^&*()[]{}|\\<>?/~`'
-
-      logger.info(specialChars)
-      expect(consoleSpy.consoleLogSpy).toHaveBeenCalledWith(
-        COLORS.CYAN,
-        'clickhouse-migrations :',
-        COLORS.RESET,
-        specialChars,
-      )
-    })
-
-    it('should handle unicode and emojis', () => {
-      const logger = createLogger()
-      const unicodeMessage = 'Success! ✓ ✅ 🎉 中文'
-
-      logger.info(unicodeMessage)
-      expect(consoleSpy.consoleLogSpy).toHaveBeenCalledWith(
-        COLORS.CYAN,
-        'clickhouse-migrations :',
-        COLORS.RESET,
-        unicodeMessage,
-      )
-    })
-  })
-
-  describe('JSON Logger', () => {
-    describe('info()', () => {
-      it('should log info messages as JSON with INFO severity', () => {
-        const logger = createLogger({ format: 'json' })
-        logger.info('Test info message')
-
-        expect(consoleSpy.consoleLogSpy).toHaveBeenCalledTimes(1)
-        const logOutput = consoleSpy.consoleLogSpy.mock.calls[0][0]
-        const parsed = JSON.parse(logOutput)
-
-        expect(parsed).toMatchObject({
-          severity: 'INFO',
-          message: 'Test info message',
-          component: 'clickhouse-migrations',
-        })
-        expect(parsed.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/)
-      })
-    })
-
-    describe('error()', () => {
-      it('should log error messages as JSON with ERROR severity', () => {
-        const logger = createLogger({ format: 'json' })
-        logger.error('Test error message')
-
-        expect(consoleSpy.consoleLogSpy).toHaveBeenCalledTimes(1)
-        const logOutput = consoleSpy.consoleLogSpy.mock.calls[0][0]
-        const parsed = JSON.parse(logOutput)
-
-        expect(parsed).toMatchObject({
-          severity: 'ERROR',
-          message: 'Test error message',
-          component: 'clickhouse-migrations',
-        })
-        expect(parsed.details).toBeUndefined()
-      })
-
-      it('should include details field when error details provided', () => {
-        const logger = createLogger({ format: 'json' })
-        logger.error('Test error', 'Error details here')
-
-        const logOutput = consoleSpy.consoleLogSpy.mock.calls[0][0]
-        const parsed = JSON.parse(logOutput)
-
-        expect(parsed).toMatchObject({
-          severity: 'ERROR',
-          message: 'Test error',
-          details: 'Error details here',
-          component: 'clickhouse-migrations',
-        })
-      })
-    })
-
-    describe('warn()', () => {
-      it('should log warning messages as JSON with WARNING severity', () => {
-        const logger = createLogger({ format: 'json' })
-        logger.warn('Test warning message')
-
-        const logOutput = consoleSpy.consoleLogSpy.mock.calls[0][0]
-        const parsed = JSON.parse(logOutput)
-
-        expect(parsed).toMatchObject({
-          severity: 'WARNING',
-          message: 'Test warning message',
-          component: 'clickhouse-migrations',
-        })
-      })
-    })
-
-    it('should handle special characters and escape them properly in JSON', () => {
-      const logger = createLogger({ format: 'json' })
-      const specialMessage = 'Message with "quotes" and \n newline \t tab'
-      logger.info(specialMessage)
-
-      const logOutput = consoleSpy.consoleLogSpy.mock.calls[0][0]
-      const parsed = JSON.parse(logOutput)
-
-      expect(parsed.message).toBe(specialMessage)
-    })
-
-    it('should use custom prefix when provided', () => {
-      const logger = createLogger({ format: 'json', prefix: 'custom-app' })
-      logger.info('Test message')
-
-      const logOutput = consoleSpy.consoleLogSpy.mock.calls[0][0]
-      const parsed = JSON.parse(logOutput)
-
-      expect(parsed.component).toBe('custom-app')
-    })
-  })
-
-  describe('Log Level Filtering - Console Logger', () => {
-    it('should filter logs below minimum level (minLevel: error)', () => {
-      const logger = createLogger({ format: 'console', minLevel: 'error' })
-
-      logger.info('info message')
-      logger.warn('warn message')
-      logger.error('error message')
-
-      // Only error should be logged
-      expect(consoleSpy.consoleLogSpy).toHaveBeenCalledTimes(0)
-      expect(consoleSpy.consoleErrorSpy).toHaveBeenCalledTimes(1)
-    })
-
-    it('should filter logs below minimum level (minLevel: warn)', () => {
-      const logger = createLogger({ format: 'console', minLevel: 'warn' })
-
-      logger.info('info message')
-      logger.warn('warn message')
-      logger.error('error message')
-
-      // warn and error should be logged
-      expect(consoleSpy.consoleLogSpy).toHaveBeenCalledTimes(1) // warn
-      expect(consoleSpy.consoleErrorSpy).toHaveBeenCalledTimes(1) // error
-    })
-
-    it('should use info as default minimum level', () => {
-      const logger = createLogger({ format: 'console' })
-
-      logger.info('info message')
-      logger.warn('warn message')
-
-      expect(consoleSpy.consoleLogSpy).toHaveBeenCalledTimes(2) // info, warn
-    })
-  })
-
-  describe('Log Level Filtering - JSON Logger', () => {
-    it('should filter logs below minimum level (minLevel: error)', () => {
-      const logger = createLogger({ format: 'json', minLevel: 'error' })
-
-      logger.info('info message')
-      logger.warn('warn message')
-      logger.error('error message')
-
-      // Only error should be logged
-      expect(consoleSpy.consoleLogSpy).toHaveBeenCalledTimes(1)
-      const parsed = JSON.parse(consoleSpy.consoleLogSpy.mock.calls[0][0])
-      expect(parsed.severity).toBe('ERROR')
-    })
-
-    it('should filter logs below minimum level (minLevel: warn)', () => {
-      const logger = createLogger({ format: 'json', minLevel: 'warn' })
-
-      logger.info('info message')
-      logger.warn('warn message')
-      logger.error('error message')
-
-      // warn and error should be logged
-      expect(consoleSpy.consoleLogSpy).toHaveBeenCalledTimes(2)
-      const parsed1 = JSON.parse(consoleSpy.consoleLogSpy.mock.calls[0][0])
-      const parsed2 = JSON.parse(consoleSpy.consoleLogSpy.mock.calls[1][0])
-      expect(parsed1.severity).toBe('WARNING')
-      expect(parsed2.severity).toBe('ERROR')
-    })
-  })
-
   describe('createLogger()', () => {
-    it('should create console logger by default', () => {
-      const logger = createLogger()
-      logger.info('test')
+    describe('JSON output (default)', () => {
+      it('should output JSON with structured format', () => {
+        const logger = createLogger({ name: 'test-app', base: {} })
+        logger.info('hello world')
 
-      expect(consoleSpy.consoleLogSpy).toHaveBeenCalledWith(
-        COLORS.CYAN,
-        'clickhouse-migrations :',
-        COLORS.RESET,
-        'test',
-      )
+        expect(consoleSpy.consoleLogSpy).toHaveBeenCalledTimes(1)
+        const output = consoleSpy.consoleLogSpy.mock.calls[0]?.[0]
+        const parsed = JSON.parse(output)
+
+        expect(parsed).toMatchObject({
+          level: 30, // info level
+          msg: 'hello world',
+          name: 'test-app',
+        })
+        expect(parsed.time).toBeDefined()
+      })
+
+      it('should use numeric log levels', () => {
+        expect(levels.trace).toBe(10)
+        expect(levels.debug).toBe(20)
+        expect(levels.info).toBe(30)
+        expect(levels.warn).toBe(40)
+        expect(levels.error).toBe(50)
+        expect(levels.fatal).toBe(60)
+      })
+
+      it('should include merge object properties', () => {
+        const logger = createLogger({ base: {} })
+        logger.info({ userId: 123, action: 'login' }, 'user logged in')
+
+        const output = consoleSpy.consoleLogSpy.mock.calls[0]?.[0]
+        const parsed = JSON.parse(output)
+
+        expect(parsed).toMatchObject({
+          level: 30,
+          userId: 123,
+          action: 'login',
+          msg: 'user logged in',
+        })
+      })
+
+      it('should support all log methods', () => {
+        const logger = createLogger({ level: 'trace', base: {} })
+
+        logger.trace('trace message')
+        logger.debug('debug message')
+        logger.info('info message')
+        logger.warn('warn message')
+        logger.error('error message')
+        logger.fatal('fatal message')
+
+        // trace, debug, info, warn go to console.log
+        expect(consoleSpy.consoleLogSpy).toHaveBeenCalledTimes(4)
+        // error, fatal go to console.error
+        expect(consoleSpy.consoleErrorSpy).toHaveBeenCalledTimes(2)
+      })
     })
 
-    it('should create JSON logger when format is json', () => {
-      const logger = createLogger({ format: 'json' })
-      logger.info('test')
+    describe('child loggers', () => {
+      it('should create child logger with bindings', () => {
+        const logger = createLogger({ name: 'app', base: {} })
+        const child = logger.child({ requestId: 'abc-123' })
 
-      const logOutput = consoleSpy.consoleLogSpy.mock.calls[0][0]
-      const parsed = JSON.parse(logOutput)
-      expect(parsed.severity).toBe('INFO')
+        child.info('processing request')
+
+        const output = consoleSpy.consoleLogSpy.mock.calls[0]?.[0]
+        const parsed = JSON.parse(output)
+
+        expect(parsed).toMatchObject({
+          level: 30,
+          requestId: 'abc-123',
+          msg: 'processing request',
+        })
+      })
+
+      it('should inherit parent configuration', () => {
+        const logger = createLogger({ name: 'app', level: 'warn', base: {} })
+        const child = logger.child({ component: 'db' })
+
+        child.info('should not appear')
+        child.warn('should appear')
+
+        expect(consoleSpy.consoleLogSpy).toHaveBeenCalledTimes(1)
+      })
+
+      it('should return bindings via bindings() method', () => {
+        const logger = createLogger()
+        const child = logger.child({ requestId: 'xyz', userId: 42 })
+
+        expect(child.bindings()).toEqual({ requestId: 'xyz', userId: 42 })
+      })
+
+      it('should merge child bindings with parent bindings', () => {
+        const logger = createLogger({ base: {} })
+        const child1 = logger.child({ service: 'api' })
+        const child2 = child1.child({ requestId: '123' })
+
+        child2.info('nested child')
+
+        const output = consoleSpy.consoleLogSpy.mock.calls[0]?.[0]
+        const parsed = JSON.parse(output)
+
+        expect(parsed).toMatchObject({
+          service: 'api',
+          requestId: '123',
+        })
+      })
     })
 
-    it('should use custom prefix', () => {
-      const logger = createLogger({ format: 'json', prefix: 'my-app' })
-      logger.info('test')
+    describe('log level filtering', () => {
+      it('should filter logs below minimum level', () => {
+        const logger = createLogger({ level: 'warn', base: {} })
 
-      const logOutput = consoleSpy.consoleLogSpy.mock.calls[0][0]
-      const parsed = JSON.parse(logOutput)
-      expect(parsed.component).toBe('my-app')
+        logger.trace('no')
+        logger.debug('no')
+        logger.info('no')
+        logger.warn('yes')
+        logger.error('yes')
+
+        expect(consoleSpy.consoleLogSpy).toHaveBeenCalledTimes(1)
+        expect(consoleSpy.consoleErrorSpy).toHaveBeenCalledTimes(1)
+      })
+
+      it('should allow changing level at runtime', () => {
+        const logger = createLogger({ level: 'error', base: {} })
+
+        logger.info('should not appear')
+        expect(consoleSpy.consoleLogSpy).toHaveBeenCalledTimes(0)
+
+        logger.level = 'info'
+        logger.info('should appear now')
+        expect(consoleSpy.consoleLogSpy).toHaveBeenCalledTimes(1)
+      })
     })
 
-    it('should apply minimum log level', () => {
-      const logger = createLogger({ format: 'console', minLevel: 'error' })
-      logger.info('test info')
-      logger.error('test error')
+    describe('pretty transport', () => {
+      it('should output human-readable format', () => {
+        const logger = createLogger({ format: 'pretty', name: 'my-app' })
+        logger.info('hello')
 
-      expect(consoleSpy.consoleLogSpy).toHaveBeenCalledTimes(0)
-      expect(consoleSpy.consoleErrorSpy).toHaveBeenCalledTimes(1)
+        expect(consoleSpy.consoleLogSpy).toHaveBeenCalledTimes(1)
+        const output = consoleSpy.consoleLogSpy.mock.calls[0]?.[0]
+
+        // Should contain timestamp, level, name, and message
+        expect(output).toContain('INFO')
+        expect(output).toContain('my-app')
+        expect(output).toContain('hello')
+      })
+
+      it('should include bindings in pretty output', () => {
+        const logger = createLogger({ format: 'pretty' })
+        const child = logger.child({ requestId: 'test-123' })
+        child.info('request processed')
+
+        const output = consoleSpy.consoleLogSpy.mock.calls[0]?.[0]
+        expect(output).toContain('requestId')
+        expect(output).toContain('test-123')
+      })
+    })
+
+    describe('timestamp options', () => {
+      it('should include timestamp by default', () => {
+        const logger = createLogger({ base: {} })
+        logger.info('test')
+
+        const output = consoleSpy.consoleLogSpy.mock.calls[0]?.[0]
+        const parsed = JSON.parse(output)
+        expect(parsed.time).toBeDefined()
+      })
+
+      it('should allow disabling timestamp', () => {
+        const logger = createLogger({ timestamp: false, base: {} })
+        logger.info('test')
+
+        const output = consoleSpy.consoleLogSpy.mock.calls[0]?.[0]
+        const parsed = JSON.parse(output)
+        expect(parsed.time).toBeUndefined()
+      })
+
+      it('should support custom timestamp function', () => {
+        const logger = createLogger({ timestamp: () => 'custom-time', base: {} })
+        logger.info('test')
+
+        const output = consoleSpy.consoleLogSpy.mock.calls[0]?.[0]
+        const parsed = JSON.parse(output)
+        expect(parsed.time).toBe('custom-time')
+      })
+    })
+
+    describe('default options', () => {
+      it('should create JSON logger by default', () => {
+        const logger = createLogger({ base: {} })
+        logger.info('test message')
+
+        const output = consoleSpy.consoleLogSpy.mock.calls[0]?.[0]
+        const parsed = JSON.parse(output)
+        expect(parsed.level).toBe(30)
+        expect(parsed.msg).toBe('test message')
+      })
+
+      it('should use info as default minimum level', () => {
+        const logger = createLogger({ base: {} })
+
+        logger.debug('debug - should not appear')
+        logger.info('info - should appear')
+        logger.warn('warn - should appear')
+
+        expect(consoleSpy.consoleLogSpy).toHaveBeenCalledTimes(2)
+      })
     })
   })
 
-  describe('Integration: Format and Level combinations', () => {
-    it('should work with console format and warn level', () => {
-      const logger = createLogger({ format: 'console', minLevel: 'warn' })
-
-      logger.info('should not appear')
-      logger.warn('should appear')
-      logger.error('should also appear')
-
-      expect(consoleSpy.consoleLogSpy).toHaveBeenCalledTimes(1)
-      expect(consoleSpy.consoleErrorSpy).toHaveBeenCalledTimes(1)
-    })
-
-    it('should work with custom prefix, json format, and error level', () => {
-      const logger = createLogger({ format: 'json', minLevel: 'error', prefix: 'test-app' })
-
-      logger.info('should not appear')
-      logger.warn('should not appear')
-      logger.error('should appear')
-
-      expect(consoleSpy.consoleLogSpy).toHaveBeenCalledTimes(1)
-      const parsed = JSON.parse(consoleSpy.consoleLogSpy.mock.calls[0][0])
-      expect(parsed).toMatchObject({
-        severity: 'ERROR',
-        message: 'should appear',
-        component: 'test-app',
-      })
+  describe('COLORS export', () => {
+    it('should export ANSI color codes', () => {
+      expect(COLORS.CYAN).toBe('\x1b[36m')
+      expect(COLORS.GREEN).toBe('\x1b[32m')
+      expect(COLORS.YELLOW).toBe('\x1b[33m')
+      expect(COLORS.RED).toBe('\x1b[31m')
+      expect(COLORS.RESET).toBe('\x1b[0m')
     })
   })
 })

@@ -77,19 +77,23 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          bun-version: 1.2.23
+          node-version: '22'
+          cache: 'pnpm'
 
       - name: Install Dependencies
-        run: bun install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Run Linting
-        run: bun run lint
+        run: pnpm run lint
 
       - name: Run Code Quality Checks
-        run: bun run check
+        run: pnpm run check
 
   # ============================================================================
   # Unit Tests Job
@@ -113,21 +117,20 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: 1.2.23
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
 
       - name: Setup Node.js ${{ matrix.node }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
+          cache: 'pnpm'
 
       - name: Install Dependencies
-        run: bun install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Run Unit Tests
-        run: bun run test:unit
+        run: pnpm run test:unit
 
   # ============================================================================
   # Integration Tests Job
@@ -180,21 +183,20 @@ jobs:
           docker compose up -d --wait
           echo "✓ ClickHouse is ready (healthcheck passed)!"
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: 1.2.23
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
 
       - name: Setup Node.js ${{ matrix.node }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
+          cache: 'pnpm'
 
       - name: Install Dependencies
-        run: bun install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Build Package
-        run: bun run build
+        run: pnpm run build
 
       - name: Apply Test Migrations
         run: |
@@ -228,7 +230,7 @@ jobs:
           fi
 
       - name: Run E2E Tests
-        run: bun run test:e2e
+        run: pnpm run test:e2e
         timeout-minutes: 10
         env:
           CI: true

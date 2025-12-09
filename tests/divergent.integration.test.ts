@@ -48,6 +48,8 @@ describe('Divergent migration tests with abort_divergent flag', () => {
         username: 'default',
         password: '',
         dbName: 'analytics',
+        dbEngine: 'ENGINE=Atomic',
+        tableEngine: 'MergeTree',
         abortDivergent: true,
         createDatabase: true,
         logger,
@@ -63,31 +65,48 @@ describe('Divergent migration tests with abort_divergent flag', () => {
       json: () => Promise.resolve([{ version: 1, checksum: 'old_checksum_value', migration_name: '1_init.sql' }]),
     })
 
-    const logger = createLogger()
+    const logger = createLogger({ base: {} })
     await runMigration({
       migrationsHome: 'tests/migrations/one',
       host: 'http://sometesthost:8123',
       username: 'default',
       password: '',
       dbName: 'analytics',
+      dbEngine: 'ENGINE=Atomic',
+      tableEngine: 'MergeTree',
       abortDivergent: false,
       createDatabase: true,
       logger,
     })
 
-    // Should log warning message
-    expect(consoleSpy.consoleLogSpy).toHaveBeenCalledWith(
-      '\x1b[33m',
-      '  Warning: applied migration 1_init.sql has different checksum than the file on filesystem. Continuing due to --abort-divergent=false.',
-      '\x1b[0m',
-    )
+    // Should log warning message (JSON format)
+    const warnCall = consoleSpy.consoleLogSpy.mock.calls.find((call: string[]) => {
+      const output = call[0]
+      if (typeof output !== 'string') {
+        return false
+      }
+      try {
+        const parsed = JSON.parse(output)
+        return parsed.level === 40 && parsed.msg?.includes('different checksum') && parsed.msg?.includes('1_init.sql')
+      } catch {
+        return false
+      }
+    })
+    expect(warnCall).toBeDefined()
 
-    // Should also log success message for no new migrations
-    expect(consoleSpy.consoleLogSpy).toHaveBeenCalledWith(
-      '\x1b[36m',
-      'clickhouse-migrations :',
-      '\x1b[0m',
-      'No migrations to apply.',
-    )
+    // Should also log success message for no new migrations (JSON format)
+    const infoCall = consoleSpy.consoleLogSpy.mock.calls.find((call: string[]) => {
+      const output = call[0]
+      if (typeof output !== 'string') {
+        return false
+      }
+      try {
+        const parsed = JSON.parse(output)
+        return parsed.level === 30 && parsed.msg === 'No migrations to apply.'
+      } catch {
+        return false
+      }
+    })
+    expect(infoCall).toBeDefined()
   })
 })

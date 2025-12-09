@@ -17,8 +17,8 @@ describe('TLS Certificate Support Tests', () => {
       expect(result.stderr).not.toContain('ca_cert')
       expect(result.stderr).not.toContain('required option')
 
-      // Should try to connect (and fail due to fake host)
-      expect(result.stderr).toContain('Error')
+      // Should try to connect (and fail due to fake host) - JSON output contains error level 50
+      expect(result.stderr).toMatch(/level.*50|ECONNREFUSED|Error/i)
     })
 
     it('should parse all certificate command line options without syntax errors', async () => {
@@ -33,8 +33,8 @@ describe('TLS Certificate Support Tests', () => {
       expect(result.stderr).not.toMatch(/unknown.*cert|required.*cert/)
       expect(result.stderr).not.toMatch(/unknown.*key|required.*key/)
 
-      // Should try to connect (and fail due to connection issue or cert/password conflict)
-      expect(result.stderr).toContain('Error')
+      // Should try to connect (and fail due to connection issue or cert/password conflict) - JSON output
+      expect(result.stderr).toMatch(/level.*50|ECONNREFUSED|Error/i)
     })
 
     it('should handle certificate environment variables without syntax errors', async () => {
@@ -59,8 +59,8 @@ describe('TLS Certificate Support Tests', () => {
       expect(result.stderr).not.toContain('CH_MIGRATIONS_CERT')
       expect(result.stderr).not.toContain('CH_MIGRATIONS_KEY')
 
-      // Should try to connect (and fail due to fake host)
-      expect(result.stderr).toContain('Error')
+      // Should try to connect (and fail due to fake host) - JSON output
+      expect(result.stderr).toMatch(/level.*50|ECONNREFUSED|Error/i)
     })
   })
 
@@ -124,8 +124,8 @@ describe('TLS Certificate Support Tests', () => {
       expect(result.stderr).not.toContain('unknown option')
       expect(result.stderr).not.toContain('required option')
 
-      // Should try to connect (and fail due to fake host)
-      expect(result.stderr).toContain('Error')
+      // Should try to connect (and fail due to fake host) - JSON output
+      expect(result.stderr).toMatch(/level.*50|ECONNREFUSED|Error/i)
     })
 
     it('should accept only CA certificate without requiring client cert and key', async () => {
@@ -137,8 +137,8 @@ describe('TLS Certificate Support Tests', () => {
       expect(result.stderr).not.toContain('unknown option')
       expect(result.stderr).not.toContain('required option')
 
-      // Should try to connect (and fail due to fake host)
-      expect(result.stderr).toContain('Error')
+      // Should try to connect (and fail due to fake host) - JSON output
+      expect(result.stderr).toMatch(/level.*50|ECONNREFUSED|Error/i)
     })
   })
 })

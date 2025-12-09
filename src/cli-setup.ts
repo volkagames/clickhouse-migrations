@@ -1,9 +1,10 @@
 import { Command } from 'commander'
+
 import packageJson from '../package.json' with { type: 'json' }
-import { createLogger, type LogFormat, type MinLogLevel } from './logger'
+import { createLogger, type Level } from './logger'
 import { displayMigrationStatus, getMigrationStatus, runMigration } from './migrate'
 
-export type CliParameters = {
+export interface CliParameters {
   migrationsHome: string
   dsn?: string
   host?: string
@@ -19,12 +20,12 @@ export type CliParameters = {
   key?: string
   abortDivergent?: boolean | string
   createDatabase?: boolean | string
-  logFormat?: LogFormat
-  logLevel?: MinLogLevel
+  logFormat?: 'json' | 'pretty'
+  logLevel?: Level
   logPrefix?: string
 }
 
-// Parses CLI/env booleans: handles 'false', '0', 'no', 'off', 'n' as false
+/** Parses CLI/env booleans: handles 'false', '0', 'no', 'off', 'n' as false */
 export const parseBoolean = (value: unknown, defaultValue = true): boolean => {
   if (value === undefined || value === null) {
     return defaultValue
@@ -44,10 +45,7 @@ export const parseBoolean = (value: unknown, defaultValue = true): boolean => {
   return !falsyValues.includes(str)
 }
 
-// Read version from package.json
-export const getVersion = (): string => {
-  return packageJson.version
-}
+export const getVersion = (): string => packageJson.version
 
 export const setupCli = (): Command => {
   const program = new Command()
@@ -69,12 +67,12 @@ export const setupCli = (): Command => {
     .requiredOption('--migrations-home <dir>', "Migrations' directory", process.env.CH_MIGRATIONS_HOME)
     .option(
       '--db-engine <value>',
-      "Database engine with optional cluster config (default: \"ENGINE=Atomic\"). Examples: \"ENGINE = Replicated()\" or \"ON CLUSTER '{cluster}' ENGINE = Replicated('/clickhouse/{installation}/{cluster}/databases/{database}', '{shard}', '{replica}')\"",
+      'Database engine with cluster config (default: "ON CLUSTER \'{cluster}\' ENGINE = Replicated(...)"). Use "ENGINE=Atomic" for standalone mode',
       process.env.CH_MIGRATIONS_DB_ENGINE,
     )
     .option(
       '--table-engine <value>',
-      'Engine for the _migrations table (default: "MergeTree"). Examples: "ReplicatedMergeTree()" or "ReplicatedMergeTree(\'/clickhouse/tables/{shard}/table_name\', \'{replica}\')"',
+      'Engine for the _migrations table (default: "ReplicatedMergeTree"). Use "MergeTree" for standalone mode',
       process.env.CH_MIGRATIONS_TABLE_ENGINE,
     )
     .option(
@@ -102,12 +100,12 @@ export const setupCli = (): Command => {
     )
     .option(
       '--log-format <format>',
-      'Log output format: console or json (default: console)',
+      'Log output format: json or pretty (default: json)',
       process.env.CH_MIGRATIONS_LOG_FORMAT,
     )
     .option(
       '--log-level <level>',
-      'Minimum log level: debug, info, warn, error (default: info)',
+      'Minimum log level: trace, debug, info, warn, error, fatal (default: info)',
       process.env.CH_MIGRATIONS_LOG_LEVEL,
     )
     .option(
@@ -116,7 +114,7 @@ export const setupCli = (): Command => {
       process.env.CH_MIGRATIONS_LOG_PREFIX,
     )
     .action(async (options: CliParameters) => {
-      const logger = createLogger({ format: options.logFormat, minLevel: options.logLevel, prefix: options.logPrefix })
+      const logger = createLogger({ format: options.logFormat, level: options.logLevel, name: options.logPrefix })
       try {
         await runMigration({
           migrationsHome: options.migrationsHome,
@@ -157,7 +155,7 @@ export const setupCli = (): Command => {
     .requiredOption('--migrations-home <dir>', "Migrations' directory", process.env.CH_MIGRATIONS_HOME)
     .option(
       '--table-engine <value>',
-      'Engine for the _migrations table (default: "MergeTree"). Examples: "ReplicatedMergeTree()" or "ReplicatedMergeTree(\'/clickhouse/tables/{shard}/table_name\', \'{replica}\')"',
+      'Engine for the _migrations table (default: "ReplicatedMergeTree"). Use "MergeTree" for standalone mode',
       process.env.CH_MIGRATIONS_TABLE_ENGINE,
     )
     .option(
@@ -175,12 +173,12 @@ export const setupCli = (): Command => {
     .option('--key <path>', 'Client key file path', process.env.CH_MIGRATIONS_KEY)
     .option(
       '--log-format <format>',
-      'Log output format: console or json (default: console)',
+      'Log output format: json or pretty (default: json)',
       process.env.CH_MIGRATIONS_LOG_FORMAT,
     )
     .option(
       '--log-level <level>',
-      'Minimum log level: debug, info, warn, error (default: info)',
+      'Minimum log level: trace, debug, info, warn, error, fatal (default: info)',
       process.env.CH_MIGRATIONS_LOG_LEVEL,
     )
     .option(
@@ -189,7 +187,7 @@ export const setupCli = (): Command => {
       process.env.CH_MIGRATIONS_LOG_PREFIX,
     )
     .action(async (options: CliParameters) => {
-      const logger = createLogger({ format: options.logFormat, minLevel: options.logLevel, prefix: options.logPrefix })
+      const logger = createLogger({ format: options.logFormat, level: options.logLevel, name: options.logPrefix })
       try {
         const statusList = await getMigrationStatus({
           migrationsHome: options.migrationsHome,

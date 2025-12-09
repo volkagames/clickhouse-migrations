@@ -20,10 +20,9 @@
   },
   "sideEffects": false,
   "engines": {
-    "node": ">=20",
-    "bun": ">=1.2.23"
+    "node": ">=20"
   },
-  "packageManager": "bun@1.2.23",
+  "packageManager": "pnpm@10.0.0",
   "private": false,
   "license": "MIT",
   "author": "alfatm",
@@ -49,7 +48,7 @@
     "test": "vitest run",
     "test:unit": "vitest run tests/*.unit.test.ts",
     "test:integration": "vitest run tests/*.integration.test.ts",
-    "test:e2e": "bun run test:e2e:setup && bun run test:e2e:wait && vitest run tests/*.e2e.test.ts",
+    "test:e2e": "pnpm run test:e2e:setup && pnpm run test:e2e:wait && vitest run tests/*.e2e.test.ts",
     "test:e2e:setup": "docker compose up -d clickhouse clickhouse_tls",
     "test:e2e:wait": "bash -c 'for i in {1..30}; do if curl -s http://localhost:8123/ping > /dev/null 2>&1 && echo \"SELECT 1\" | curl -s http://localhost:8123/ --data-binary @- > /dev/null 2>&1; then echo \"ClickHouse ready\"; exit 0; fi; sleep 1; done; echo \"Timeout\"; exit 1'",
     "test:e2e:teardown": "docker compose down",
@@ -59,10 +58,10 @@
     "format": "biome format --write ./src ./tests",
     "lint": "biome lint ./src ./tests",
     "check": "biome check --write ./src ./tests",
-    "prepare": "husky && bun run build",
-    "prepublishOnly": "bun run test:unit && bun run check",
-    "preversion": "bun run check",
-    "version": "bun run format && git add -A src",
+    "prepare": "husky && pnpm run build",
+    "prepublishOnly": "pnpm run test:unit && pnpm run check",
+    "preversion": "pnpm run check",
+    "version": "pnpm run format && git add -A src",
     "postversion": "git push && git push --tags"
   },
   "dependencies": {

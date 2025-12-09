@@ -27,7 +27,7 @@ describe('Migration tests', () => {
     cleanupTest()
   })
 
-  it('First migration', async () => {
+  it('First migration (standalone mode)', async () => {
     const querySpy = vi.spyOn(mockClient, 'query')
     const execSpy = vi.spyOn(mockClient, 'exec')
     const insertSpy = vi.spyOn(mockClient, 'insert')
@@ -39,6 +39,8 @@ describe('Migration tests', () => {
       username: 'default',
       password: '',
       dbName: 'analytics',
+      dbEngine: 'ENGINE=Atomic',
+      tableEngine: 'MergeTree',
       abortDivergent: true,
       createDatabase: true,
       logger,
@@ -49,7 +51,7 @@ describe('Migration tests', () => {
     expect(insertSpy).toHaveBeenCalledTimes(1)
 
     expect(execSpy).toHaveBeenNthCalledWith(1, {
-      query: 'CREATE DATABASE IF NOT EXISTS {name:Identifier}',
+      query: 'CREATE DATABASE IF NOT EXISTS {name:Identifier} ENGINE=Atomic',
       query_params: {
         name: 'analytics',
       },
@@ -101,6 +103,8 @@ describe('Migration tests', () => {
       username: 'default',
       password: '',
       dbName: 'analytics',
+      dbEngine: 'ENGINE=Atomic',
+      tableEngine: 'MergeTree',
       migrationTableName: 'my_custom_migrations',
       abortDivergent: true,
       createDatabase: true,

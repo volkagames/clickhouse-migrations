@@ -108,7 +108,7 @@ jobs:
   #
   # Steps:
   # 1. Checkout the repository code
-  # 2. Set up Bun (required by package.json engines)
+  # 2. Set up pnpm and Node.js
   # 3. Install project dependencies
   # 4. Run linting and formatting checks
   # 5. Run all tests (unit, integration, e2e)
@@ -125,29 +125,28 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
       # Required for npm OIDC trusted publishing
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '22'
           registry-url: 'https://registry.npmjs.org'
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: 1.2.23
+          cache: 'pnpm'
 
       - name: Install Dependencies
-        run: bun install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Run Code Quality Checks
-        run: bun run check
+        run: pnpm run check
 
       - name: Run Tests
-        run: bun run test:unit
+        run: pnpm run test:unit
 
       - name: Build Package
-        run: bun run build
+        run: pnpm run build
 
       - name: Publish to npm with OIDC
         run: npm publish --access public

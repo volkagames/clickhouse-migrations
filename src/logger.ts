@@ -1,135 +1,252 @@
+import { hostname } from 'node:os'
+
+// Log levels (lower = more verbose)
+export const levels = {
+  fatal: 60,
+  error: 50,
+  warn: 40,
+  info: 30,
+  debug: 20,
+  trace: 10,
+  silent: Number.POSITIVE_INFINITY,
+} as const
+
+export type Level = keyof typeof levels
+
+// ANSI colors for console output
 const COLORS = {
   CYAN: '\x1b[36m',
   GREEN: '\x1b[32m',
   YELLOW: '\x1b[33m',
   RED: '\x1b[31m',
+  MAGENTA: '\x1b[35m',
   RESET: '\x1b[0m',
 } as const
 
-export type LogLevel = 'info' | 'error' | 'warn'
-
-// Structured logging severity levels
-export type Severity =
-  | 'DEFAULT'
-  | 'DEBUG'
-  | 'INFO'
-  | 'NOTICE'
-  | 'WARNING'
-  | 'ERROR'
-  | 'CRITICAL'
-  | 'ALERT'
-  | 'EMERGENCY'
-
-export type LogFormat = 'console' | 'json'
-
-// Minimum log level filter
-export type MinLogLevel = 'debug' | 'info' | 'warn' | 'error'
-
-// Severity hierarchy for filtering
-const SEVERITY_LEVELS: Record<MinLogLevel, number> = {
-  debug: 0,
-  info: 1,
-  warn: 2,
-  error: 3,
+// Color mapping for log levels
+const LEVEL_COLORS: Record<Level, string> = {
+  fatal: COLORS.RED,
+  error: COLORS.RED,
+  warn: COLORS.YELLOW,
+  info: COLORS.CYAN,
+  debug: COLORS.MAGENTA,
+  trace: COLORS.MAGENTA,
+  silent: COLORS.RESET,
 }
 
 export interface LoggerOptions {
-  format?: LogFormat
-  prefix?: string
-  minLevel?: MinLogLevel
+  /** Logger name (adds `name` field to JSON output) */
+  name?: string
+  /** Minimum log level (default: 'info') */
+  level?: Level
+  /** Base object properties to include in every log line */
+  base?: Record<string, unknown>
+  /** Key for the message field in JSON output (default: 'msg') */
+  messageKey?: string
+  /** Include timestamp (default: true) */
+  timestamp?: boolean | (() => string)
+  /** Output format: 'json' for structured logs, 'pretty' for human-readable */
+  format?: 'json' | 'pretty'
 }
 
-export interface Logger {
-  info: (message: string) => void
-  error: (message: string, details?: string) => void
-  warn: (message: string) => void
+export interface LogFn {
+  (msg: string): void
+  (obj: Record<string, unknown>, msg?: string): void
+  <T extends Record<string, unknown>>(obj: T, msg?: string): void
 }
 
-class ConsoleLogger implements Logger {
-  private prefix: string
-  private minLevel: number
+export interface ILogger {
+  level: Level
+  fatal: LogFn
+  error: LogFn
+  warn: LogFn
+  info: LogFn
+  debug: LogFn
+  trace: LogFn
+  silent: LogFn
+  child(bindings: Record<string, unknown>): ILogger
+  bindings(): Record<string, unknown>
+}
 
-  constructor(prefix = 'clickhouse-migrations', minLevel: MinLogLevel = 'info') {
-    this.prefix = prefix
-    this.minLevel = SEVERITY_LEVELS[minLevel]
+class Logger implements ILogger {
+  private _level: Level
+  private _levelValue: number
+  private _bindings: Record<string, unknown>
+  private _base: Record<string, unknown>
+  private _messageKey: string
+  private _timestamp: boolean | (() => string)
+  private _format: 'json' | 'pretty'
+  private _name?: string
+
+  constructor(options: LoggerOptions = {}, bindings: Record<string, unknown> = {}) {
+    this._level = options.level ?? 'info'
+    this._levelValue = levels[this._level]
+    this._bindings = bindings
+    this._base = options.base ?? { pid: process.pid, hostname: hostname() }
+    this._messageKey = options.messageKey ?? 'msg'
+    this._timestamp = options.timestamp ?? true
+    this._format = options.format ?? 'json'
+    this._name = options.name
   }
 
-  private shouldLog(level: MinLogLevel): boolean {
-    return SEVERITY_LEVELS[level] >= this.minLevel
+  get level(): Level {
+    return this._level
   }
 
-  info(message: string): void {
-    if (this.shouldLog('info')) {
-      console.log(COLORS.CYAN, `${this.prefix} :`, COLORS.RESET, message)
+  set level(newLevel: Level) {
+    this._level = newLevel
+    this._levelValue = levels[newLevel]
+  }
+
+  bindings(): Record<string, unknown> {
+    return { ...this._bindings }
+  }
+
+  child(bindings: Record<string, unknown>): ILogger {
+    const childLogger = new Logger(
+      {
+        level: this._level,
+        base: this._base,
+        messageKey: this._messageKey,
+        timestamp: this._timestamp,
+        format: this._format,
+        name: this._name,
+      },
+      { ...this._bindings, ...bindings },
+    )
+    return childLogger
+  }
+
+  private shouldLog(level: Level): boolean {
+    return levels[level] >= this._levelValue
+  }
+
+  private getTimestamp(): number | string | undefined {
+    if (this._timestamp === false) {
+      return undefined
+    }
+    if (typeof this._timestamp === 'function') {
+      return this._timestamp()
+    }
+    return Date.now()
+  }
+
+  private log(level: Level, objOrMsg: Record<string, unknown> | string, msg?: string): void {
+    if (!this.shouldLog(level)) {
+      return
+    }
+
+    let mergeObj: Record<string, unknown> = {}
+    let message: string
+
+    if (typeof objOrMsg === 'string') {
+      message = objOrMsg
+    } else {
+      mergeObj = objOrMsg
+      message = msg ?? ''
+    }
+
+    if (this._format === 'pretty') {
+      this.logPretty(level, mergeObj, message)
+    } else {
+      this.logJson(level, mergeObj, message)
     }
   }
 
-  error(message: string, details?: string): void {
-    if (this.shouldLog('error')) {
-      console.error(COLORS.CYAN, `${this.prefix} :`, COLORS.RED, `Error: ${message}`, details ? `\n\n ${details}` : '')
+  private logJson(level: Level, mergeObj: Record<string, unknown>, message: string): void {
+    const timestamp = this.getTimestamp()
+    const logEntry: Record<string, unknown> = {
+      level: levels[level],
+      ...(timestamp !== undefined && { time: timestamp }),
+      ...this._base,
+      ...(this._name && { name: this._name }),
+      ...this._bindings,
+      ...mergeObj,
+      [this._messageKey]: message,
+    }
+
+    const output = JSON.stringify(logEntry)
+
+    if (level === 'error' || level === 'fatal') {
+      console.error(output)
+    } else {
+      console.log(output)
     }
   }
 
-  warn(message: string): void {
-    if (this.shouldLog('warn')) {
-      console.log(COLORS.YELLOW, `  Warning: ${message}`, COLORS.RESET)
+  private logPretty(level: Level, mergeObj: Record<string, unknown>, message: string): void {
+    const color = LEVEL_COLORS[level]
+    const timestamp = new Date().toISOString()
+    const name = this._name ? `${this._name} ` : ''
+    const bindingsStr = Object.keys(this._bindings).length > 0 ? ` ${JSON.stringify(this._bindings)}` : ''
+    const mergeStr = Object.keys(mergeObj).length > 0 ? ` ${JSON.stringify(mergeObj)}` : ''
+
+    const levelLabel = level.toUpperCase().padEnd(5)
+    const output = `${COLORS.CYAN}[${timestamp}]${COLORS.RESET} ${color}${levelLabel}${COLORS.RESET} ${name}${message}${bindingsStr}${mergeStr}`
+
+    if (level === 'error' || level === 'fatal') {
+      console.error(output)
+    } else {
+      console.log(output)
     }
+  }
+
+  fatal: LogFn = (objOrMsg: Record<string, unknown> | string, msg?: string): void => {
+    this.log('fatal', objOrMsg, msg)
+  }
+
+  error: LogFn = (objOrMsg: Record<string, unknown> | string, msg?: string): void => {
+    this.log('error', objOrMsg, msg)
+  }
+
+  warn: LogFn = (objOrMsg: Record<string, unknown> | string, msg?: string): void => {
+    this.log('warn', objOrMsg, msg)
+  }
+
+  info: LogFn = (objOrMsg: Record<string, unknown> | string, msg?: string): void => {
+    this.log('info', objOrMsg, msg)
+  }
+
+  debug: LogFn = (objOrMsg: Record<string, unknown> | string, msg?: string): void => {
+    this.log('debug', objOrMsg, msg)
+  }
+
+  trace: LogFn = (objOrMsg: Record<string, unknown> | string, msg?: string): void => {
+    this.log('trace', objOrMsg, msg)
+  }
+
+  silent: LogFn = (_objOrMsg: Record<string, unknown> | string, _msg?: string): void => {
+    // No-op for silent level
   }
 }
 
-class JsonLogger implements Logger {
-  private prefix: string
-  private minLevel: number
-
-  constructor(prefix = 'clickhouse-migrations', minLevel: MinLogLevel = 'info') {
-    this.prefix = prefix
-    this.minLevel = SEVERITY_LEVELS[minLevel]
-  }
-
-  private shouldLog(level: MinLogLevel): boolean {
-    return SEVERITY_LEVELS[level] >= this.minLevel
-  }
-
-  private formatLog(severity: Severity, message: string, details?: string): void {
-    const logEntry = {
-      severity,
-      message,
-      timestamp: new Date().toISOString(),
-      component: this.prefix,
-      ...(details && { details }),
-    }
-    console.log(JSON.stringify(logEntry))
-  }
-
-  info(message: string): void {
-    if (this.shouldLog('info')) {
-      this.formatLog('INFO', message)
-    }
-  }
-
-  error(message: string, details?: string): void {
-    if (this.shouldLog('error')) {
-      this.formatLog('ERROR', message, details)
-    }
-  }
-
-  warn(message: string): void {
-    if (this.shouldLog('warn')) {
-      this.formatLog('WARNING', message)
-    }
-  }
+/**
+ * Creates a logger instance.
+ *
+ * @example
+ * ```ts
+ * // JSON logger (default)
+ * const logger = createLogger()
+ * logger.info('hello world')
+ * // Output: {"level":30,"time":1234567890,"msg":"hello world"}
+ *
+ * // With name and custom level
+ * const logger = createLogger({ name: 'my-app', level: 'debug' })
+ * logger.debug({ userId: 123 }, 'user logged in')
+ *
+ * // Pretty output for development
+ * const logger = createLogger({ transport: 'pretty' })
+ *
+ * // Child logger with context
+ * const child = logger.child({ requestId: 'abc-123' })
+ * child.info('processing request')
+ * ```
+ */
+export const createLogger = (options: LoggerOptions = {}): ILogger => {
+  return new Logger(options)
 }
 
-// Factory function to create a logger based on options
-export const createLogger = (options: LoggerOptions = {}): Logger => {
-  const { format = 'console', prefix, minLevel } = options
-
-  if (format === 'json') {
-    return new JsonLogger(prefix, minLevel)
-  }
-
-  return new ConsoleLogger(prefix, minLevel)
-}
+export default createLogger
 
 // Export COLORS for backward compatibility with displayMigrationStatus
 export { COLORS }

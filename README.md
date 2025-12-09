@@ -1,7 +1,6 @@
 # clickhouse-migrations
 [![npm version](https://img.shields.io/npm/v/@volkagames/clickhouse-migrations.svg)](https://www.npmjs.com/package/@volkagames/clickhouse-migrations)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![Bun](https://img.shields.io/badge/bun-%3E=1.2.23-black)](https://bun.sh)
 [![Node](https://img.shields.io/badge/node-%3E=20-green)](https://nodejs.org)
 
 Version control for your ClickHouse database schema.
@@ -45,12 +44,14 @@ All other APIs remain backward compatible. See the [CHANGELOG](./CHANGELOG.md) f
 
 ## Features
 
+- **Production-Ready Defaults** - Configured for clustered ClickHouse with replicated engines out of the box
 - **Sequential Migration Management** - Apply migrations in order with version tracking
 - **Checksum Verification** - Detect modified migrations to prevent inconsistencies
 - **Security First** - Automatic password sanitization in error messages
 - **Structured Logging** - JSON output with severity levels for production monitoring
 - **TLS/HTTPS Support** - Secure connections with custom certificates
-- **Clustered ClickHouse** - Support for ON CLUSTER and replicated tables
+- **Clustered ClickHouse** - Built-in support for ON CLUSTER and replicated tables
+- **Standalone Mode** - Easy configuration for local development and testing
 - **Flexible Configuration** - CLI options or environment variables
 - **SQL Comment Support** - Comprehensive comment parsing (PostgreSQL/ClickHouse compatible)
 - **Zero Dependencies** - Minimal footprint with only `@clickhouse/client` and `commander`
@@ -63,6 +64,7 @@ All other APIs remain backward compatible. See the [CHANGELOG](./CHANGELOG.md) f
 - [Migration File Format](#migration-file-format)
 - [Usage Examples](#usage-examples)
 - [CLI Reference](#cli-reference)
+- [Cluster vs Standalone Mode](#cluster-vs-standalone-mode)
 - [Programmatic Usage](#programmatic-usage)
 - [Development](#development)
 - [Best Practices](#best-practices)
@@ -74,27 +76,14 @@ All other APIs remain backward compatible. See the [CHANGELOG](./CHANGELOG.md) f
 ## Installation
 
 ```sh
-# Using Bun (recommended)
-bun add @volkagames/clickhouse-migrations
-
-# Or using npm
 npm install @volkagames/clickhouse-migrations
-
-# Or using yarn
-yarn add @volkagames/clickhouse-migrations
 ```
 
 Or install globally:
 
 ```sh
-# Using Bun (recommended)
-bun add -g @volkagames/clickhouse-migrations
-
-# Or using npm
 npm install -g @volkagames/clickhouse-migrations
 ```
-
-> **Note:** While end users can install this package with any package manager, **development requires [Bun](https://bun.sh) >= 1.2.23**. See the [Development](#development) section for details.
 
 ## Quick Start
 
@@ -478,8 +467,8 @@ Connection parameters can be specified via DSN or individual options:
 
 | Option                   | Environment Variable            | Default                 | Description                        |
 | ------------------------ | ------------------------------- | ----------------------- | ---------------------------------- |
-| `--db-engine`            | `CH_MIGRATIONS_DB_ENGINE`       | `ENGINE=Atomic`         | Database engine clause             |
-| `--table-engine`         | `CH_MIGRATIONS_TABLE_ENGINE`    | `MergeTree`             | Migration table engine             |
+| `--db-engine`            | `CH_MIGRATIONS_DB_ENGINE`       | `ON CLUSTER... Replicated` | Database engine clause (see [Cluster Mode](#cluster-vs-standalone-mode)) |
+| `--table-engine`         | `CH_MIGRATIONS_TABLE_ENGINE`    | `ReplicatedMergeTree`   | Migration table engine             |
 | `--migration-table-name` | `CH_MIGRATIONS_TABLE_NAME`      | `_migrations`           | Name for migrations tracking table |
 | `--timeout`              | `CH_MIGRATIONS_TIMEOUT`         | `30000`                 | Request timeout (ms)               |
 | `--ca-cert`              | `CH_MIGRATIONS_CA_CERT`         | -                       | CA certificate path                |
@@ -487,7 +476,7 @@ Connection parameters can be specified via DSN or individual options:
 | `--key`                  | `CH_MIGRATIONS_KEY`             | -                       | Client key path                    |
 | `--abort-divergent`      | `CH_MIGRATIONS_ABORT_DIVERGENT` | `true`                  | Abort on checksum mismatch         |
 | `--create-database`      | `CH_MIGRATIONS_CREATE_DATABASE` | `true`                  | Auto-create database               |
-| `--log-format`           | `CH_MIGRATIONS_LOG_FORMAT`      | `console`               | Log output format                  |
+| `--log-format`           | `CH_MIGRATIONS_LOG_FORMAT`      | `json`                  | Log output format                  |
 | `--log-level`            | `CH_MIGRATIONS_LOG_LEVEL`       | `info`                  | Minimum log level                  |
 | `--log-prefix`           | `CH_MIGRATIONS_LOG_PREFIX`      | `clickhouse-migrations` | Log component/prefix name          |
 
@@ -495,13 +484,13 @@ Connection parameters can be specified via DSN or individual options:
 
 | Option                   | Environment Variable         | Default                 | Description                        |
 | ------------------------ | ---------------------------- | ----------------------- | ---------------------------------- |
-| `--table-engine`         | `CH_MIGRATIONS_TABLE_ENGINE` | `MergeTree`             | Migration table engine             |
+| `--table-engine`         | `CH_MIGRATIONS_TABLE_ENGINE` | `ReplicatedMergeTree`   | Migration table engine             |
 | `--migration-table-name` | `CH_MIGRATIONS_TABLE_NAME`   | `_migrations`           | Name for migrations tracking table |
 | `--timeout`              | `CH_MIGRATIONS_TIMEOUT`      | `30000`                 | Request timeout (ms)               |
 | `--ca-cert`              | `CH_MIGRATIONS_CA_CERT`      | -                       | CA certificate path                |
 | `--cert`                 | `CH_MIGRATIONS_CERT`         | -                       | Client certificate path            |
 | `--key`                  | `CH_MIGRATIONS_KEY`          | -                       | Client key path                    |
-| `--log-format`           | `CH_MIGRATIONS_LOG_FORMAT`   | `console`               | Log output format                  |
+| `--log-format`           | `CH_MIGRATIONS_LOG_FORMAT`   | `json`                  | Log output format                  |
 | `--log-level`            | `CH_MIGRATIONS_LOG_LEVEL`    | `info`                  | Minimum log level                  |
 | `--log-prefix`           | `CH_MIGRATIONS_LOG_PREFIX`   | `clickhouse-migrations` | Log component/prefix name          |
 
@@ -513,19 +502,19 @@ The tool supports both human-readable console output and structured JSON logging
 
 Control the output format with `--log-format`:
 
-**Console format (default)** - Human-readable colored output:
+**JSON format (default)** - Structured logs with severity field for production:
 ```sh
 clickhouse-migrations migrate \
   --host=http://localhost:8123 \
   --migrations-home=./migrations
 ```
 
-**JSON format** - Structured logs with severity field:
+**Console format** - Human-readable colored output for development:
 ```sh
 clickhouse-migrations migrate \
   --host=http://localhost:8123 \
   --migrations-home=./migrations \
-  --log-format=json
+  --log-format=pretty
 ```
 
 JSON output example:
@@ -617,9 +606,77 @@ CH_MIGRATIONS_LOG_PREFIX=my-application
 - `0` - Success
 - `1` - Error occurred (check error message)
 
+## Cluster vs Standalone Mode
+
+### Production-First Philosophy
+
+This tool follows a **production-first design philosophy**. We believe that software should be written and configured for production environments from day one, not retrofitted later.
+
+**Why production defaults?**
+
+- **Real environments come first** — Production is where your code runs 99% of its lifetime. Local development is just a stepping stone.
+- **No surprises in production** — What works in development works in production. No "it worked on my machine" issues.
+- **Cluster-ready from the start** — ClickHouse shines in clustered deployments. Start with the right architecture.
+- **Structured logging by default** — JSON logs integrate with monitoring systems. Human-readable output is opt-in for development.
+
+Local development should adapt to production requirements, not the other way around.
+
+### Default Mode: Cluster (Production)
+
+Out of the box, the tool uses:
+
+- **Database engine:** `ON CLUSTER '{cluster}' ENGINE = Replicated('/clickhouse/{installation}/{cluster}/databases/{database}', '{shard}', '{replica}')`
+- **Table engine:** `ReplicatedMergeTree`
+- **Log format:** `json` (structured logging for production monitoring)
+
+These defaults are optimized for:
+- Multi-node ClickHouse clusters
+- High availability setups
+- Production environments with monitoring and log aggregation
+
+### Standalone Mode (Development/Testing)
+
+For local development, testing, or single-node installations, override the defaults with standalone engines:
+
+```sh
+clickhouse-migrations migrate \
+  --host=http://localhost:8123 \
+  --db=myapp \
+  --migrations-home=./migrations \
+  --db-engine="ENGINE=Atomic" \
+  --table-engine="MergeTree" \
+  --log-format=pretty
+```
+
+Or via environment variables:
+
+```env
+CH_MIGRATIONS_HOST=http://localhost:8123
+CH_MIGRATIONS_DB=myapp
+CH_MIGRATIONS_HOME=./migrations
+CH_MIGRATIONS_DB_ENGINE=ENGINE=Atomic
+CH_MIGRATIONS_TABLE_ENGINE=MergeTree
+CH_MIGRATIONS_LOG_FORMAT=pretty
+```
+
+### When to Use Each Mode
+
+| Mode | Use Case | Engines |
+|------|----------|---------|
+| **Cluster (default)** | Production, staging, multi-node clusters | `ReplicatedMergeTree`, `ON CLUSTER Replicated` |
+| **Standalone** | Local development, unit tests, CI/CD, single-node | `MergeTree`, `ENGINE=Atomic` |
+
+### Migration File Compatibility
+
+Your migration SQL files work in both modes. The engine settings only affect:
+1. How the database is created (`--db-engine`)
+2. How the `_migrations` tracking table is created (`--table-engine`)
+
+Your actual table definitions in migration files should specify their own engines as needed for your use case.
+
 ## Programmatic Usage
 
-You can use `clickhouse-migrations` as a library in your Node.js or Bun application:
+You can use `clickhouse-migrations` as a library in your Node.js application:
 
 ```typescript
 import { runMigration, createLogger } from '@volkagames/clickhouse-migrations';
@@ -641,13 +698,13 @@ async function applyMigrations() {
   }
 }
 
-// With explicit credentials and options
-async function applyMigrationsWithAuth() {
-  // Create logger with custom options
+// With explicit credentials and standalone mode (for local development)
+async function applyMigrationsStandalone() {
+  // Create logger with pretty output for development
   const logger = createLogger({
-    format: 'console',  // or 'json'
-    minLevel: 'info',   // 'debug' | 'info' | 'warn' | 'error'
-    prefix: 'my-app',   // custom prefix
+    format: 'pretty',   // Human-readable output (default is 'json')
+    level: 'info',      // 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal'
+    name: 'my-app',     // custom prefix
   });
 
   try {
@@ -658,9 +715,11 @@ async function applyMigrationsWithAuth() {
       dbName: 'myapp',               // Optional: server uses 'default' database if not provided
       migrationsHome: './migrations',
       logger,
+      // Standalone mode engines (for local development/testing)
+      dbEngine: 'ENGINE=Atomic',
+      tableEngine: 'MergeTree',
       // Optional parameters
       timeout: '30000',
-      tableEngine: 'MergeTree',
       migrationTableName: '_migrations',  // Optional: custom migration table name
       abortDivergent: true,
       createDatabase: true,
@@ -716,33 +775,53 @@ async function invalidConfiguration() {
 import type { MigrationRunConfig } from '@volkagames/clickhouse-migrations';
 import { createLogger } from '@volkagames/clickhouse-migrations';
 
-// Configuration using separate parameters
-const configSeparate: MigrationRunConfig = {
+// Production configuration (uses cluster defaults)
+const configProduction: MigrationRunConfig = {
   // Required
-  host: 'http://localhost:8123',
+  host: 'https://clickhouse.prod.example.com:8443',
   migrationsHome: './migrations',
-  logger: createLogger(),
+  logger: createLogger(),  // JSON format by default
 
   // Optional connection
-  username: 'default',         // Optional: uses ClickHouse server defaults if not provided
-  password: 'mypassword',      // Optional: uses ClickHouse server defaults if not provided
-  dbName: 'myapp',             // Optional: server uses 'default' database if not provided
+  username: 'migration_user',
+  password: 'secure_password',
+  dbName: 'production_db',
+
+  // Uses cluster defaults: ReplicatedMergeTree, ON CLUSTER Replicated
+  // No need to specify dbEngine or tableEngine
 
   // Optional settings
-  timeout: '30000',
-  dbEngine: 'ENGINE=Atomic',
-  tableEngine: 'MergeTree',
-  migrationTableName: '_migrations',  // Optional: custom migration table name
+  timeout: '60000',
+  migrationTableName: '_migrations',
   abortDivergent: true,
   createDatabase: true,
-  settings: {                   // ClickHouse query settings
-    max_memory_usage: '10000000000',
-  },
 
-  // Optional TLS
+  // TLS for production
   caCert: './certs/ca.pem',
   cert: './certs/client.crt',
   key: './certs/client.key',
+};
+
+// Standalone configuration (for local development/testing)
+const configStandalone: MigrationRunConfig = {
+  // Required
+  host: 'http://localhost:8123',
+  migrationsHome: './migrations',
+  logger: createLogger({ format: 'pretty' }),  // Human-readable for development
+
+  // Optional connection
+  username: 'default',
+  password: '',
+  dbName: 'dev_db',
+
+  // Standalone mode engines (override cluster defaults)
+  dbEngine: 'ENGINE=Atomic',
+  tableEngine: 'MergeTree',
+
+  // Optional settings
+  timeout: '30000',
+  abortDivergent: true,
+  createDatabase: true,
 };
 
 // Configuration using DSN
@@ -750,19 +829,16 @@ const configDSN: MigrationRunConfig = {
   // Required
   dsn: 'clickhouse://user:pass@localhost:8123/db',
   migrationsHome: './migrations',
-  logger: createLogger({ format: 'json', minLevel: 'info' }),
+  logger: createLogger(),
+
+  // Standalone mode (optional - uses cluster defaults if not specified)
+  dbEngine: 'ENGINE=Atomic',
+  tableEngine: 'MergeTree',
 
   // Optional settings
   timeout: '30000',
-  dbEngine: 'ENGINE=Atomic',
-  tableEngine: 'MergeTree',
   abortDivergent: true,
   createDatabase: true,
-
-  // Optional TLS
-  caCert: './certs/ca.pem',
-  cert: './certs/client.crt',
-  key: './certs/client.key',
 };
 
 // IMPORTANT: Do NOT mix DSN with individual connection parameters
@@ -779,12 +855,14 @@ const invalidConfig: MigrationRunConfig = {
 
 This project uses modern tooling and follows industry best practices for TypeScript development.
 
+### Why pnpm?
+
+This project uses **pnpm** as the package manager. We chose pnpm because it's widely adopted, has fewer bugs than alternatives, and avoids exotic behavior - it just works reliably.
+
 ### Prerequisites
 
-- **Bun** >= 1.2.23 ([Install Bun](https://bun.sh))
-- **Node.js** >= 20 (for runtime compatibility)
-
-> **Important:** This project **requires** Bun as the package manager. npm, yarn, and pnpm are explicitly **not supported**. The project includes safeguards to prevent accidental usage of other package managers.
+- **Node.js** >= 20
+- **pnpm** >= 10 ([Install pnpm](https://pnpm.io/installation))
 
 ### Setup
 
@@ -793,7 +871,7 @@ Clone the repository and install dependencies:
 ```sh
 git clone https://github.com/volkagames/clickhouse-migrations.git
 cd clickhouse-migrations
-bun install
+pnpm install
 ```
 
 ### Project Structure
@@ -827,7 +905,7 @@ clickhouse-migrations/
 Compile TypeScript to JavaScript using Rollup:
 
 ```sh
-bun run build
+pnpm run build
 ```
 
 Output is generated in the `dist/` directory:
@@ -841,40 +919,38 @@ Output is generated in the `dist/` directory:
 
 This project uses [Vitest](https://vitest.dev/) for testing.
 
-> **⚠️ Important:** Always use `bun run test` (not `bun test`). The command `bun test` invokes Bun's built-in test runner instead of Vitest, which will not work correctly with this project's test suite.
->
 > 📖 See [TESTING.md](./TESTING.md) for detailed testing documentation.
 
 Run all tests:
 
 ```sh
-bun run test
+pnpm run test
 ```
 
 Run specific test categories:
 
 ```sh
 # Unit tests only
-bun run test:unit
+pnpm run test:unit
 
 # Integration tests only
-bun run test:integration
+pnpm run test:integration
 
 # End-to-end tests only
-bun run test:e2e
+pnpm run test:e2e
 ```
 
 Additional test commands:
 
 ```sh
 # Watch mode - re-run tests on file changes
-bun run test:watch
+pnpm run test:watch
 
 # Interactive UI mode
-bun run test:ui
+pnpm run test:ui
 
 # Generate coverage report
-bun run test:coverage
+pnpm run test:coverage
 ```
 
 #### Linting and Formatting
@@ -884,25 +960,19 @@ This project uses [Biome](https://biomejs.dev/) for linting and formatting (repl
 Check and fix code style issues:
 
 ```sh
-bun run check
+pnpm run check
 ```
 
 Format source code:
 
 ```sh
-bun run format
-```
-
-Format test files:
-
-```sh
-bun run format:tests
+pnpm run format
 ```
 
 Lint without fixing:
 
 ```sh
-bun run lint
+pnpm run lint
 ```
 
 #### Git Hooks
@@ -910,13 +980,13 @@ bun run lint
 This project uses [Husky](https://typicode.github.io/husky/) to enforce code quality via Git hooks:
 
 **pre-commit** - Runs before each commit:
-- Unit tests (`bun run test:unit`)
+- Unit tests (`pnpm run test:unit`)
 - Biome check (linting and formatting)
 - TypeScript compilation check
 
 **pre-push** - Runs before pushing to remote:
-- Full test suite (`bun run test`)
-- Build verification (`bun run build`)
+- Unit tests (`pnpm run test:unit`)
+- Build verification (`pnpm run build`)
 
 **commit-msg** - Validates commit message format:
 - Enforces [Conventional Commits](https://www.conventionalcommits.org/) format
@@ -926,7 +996,7 @@ This project uses [Husky](https://typicode.github.io/husky/) to enforce code qua
   - `fix(cli): handle missing config file`
   - `docs: update installation instructions`
 
-Hooks are automatically installed when running `bun install` via the `prepare` script.
+Hooks are automatically installed when running `pnpm install` via the `prepare` script.
 
 **Bypassing hooks** (not recommended):
 ```sh
@@ -941,11 +1011,11 @@ git push --no-verify
 
 The Git hooks automatically enforce:
 
-1. Unit tests pass (pre-commit): `bun run test:unit`
-2. Code is formatted and linted: `bun run check`
-3. TypeScript compiles without errors: `bunx tsc --noEmit`
-4. All tests pass (pre-push): `bun run test`
-5. Build succeeds (pre-push): `bun run build`
+1. Unit tests pass (pre-commit): `pnpm run test:unit`
+2. Code is formatted and linted: `pnpm run check`
+3. TypeScript compiles without errors: `pnpm exec tsc --noEmit`
+4. Unit tests pass (pre-push): `pnpm run test:unit`
+5. Build succeeds (pre-push): `pnpm run build`
 
 The `prepublishOnly` script automatically runs tests and checks before publishing.
 
@@ -972,7 +1042,6 @@ The project uses **Rollup** for bundling with the following outputs:
 
 This dual-package approach ensures compatibility with all modern JavaScript environments:
 - Node.js >= 20 (both ESM and CommonJS projects)
-- Bun >= 1.2.23
 - Modern bundlers (webpack, esbuild, vite, etc.)
 
 See [rollup.config.js](rollup.config.js) for the build configuration.
@@ -1009,13 +1078,10 @@ Run the CLI locally during development:
 
 ```sh
 # Build first
-bun run build
+pnpm run build
 
 # Using Node
 node dist/cli.js migrate --host=http://localhost:8123 --migrations-home=./migrations
-
-# Or using Bun
-bun dist/cli.js migrate --host=http://localhost:8123 --migrations-home=./migrations
 
 # With debugging output
 node dist/cli.js migrate \
@@ -1030,8 +1096,8 @@ node dist/cli.js migrate \
 
 1. Write tests first (TDD approach recommended)
 2. Implement the feature in `src/`
-3. Run `bun run check` to ensure code quality
-4. Run `bun run test` to verify tests pass
+3. Run `pnpm run check` to ensure code quality
+4. Run `pnpm run test` to verify tests pass
 5. Update documentation if needed
 
 #### Fixing a Bug
@@ -1045,10 +1111,10 @@ node dist/cli.js migrate \
 
 ```sh
 # Update all dependencies
-bun update
+pnpm update
 
 # Update specific dependency
-bun update @clickhouse/client
+pnpm update @clickhouse/client
 ```
 
 After updating dependencies, run the full test suite to ensure compatibility.
@@ -1056,17 +1122,6 @@ After updating dependencies, run the full test suite to ensure compatibility.
 ### EditorConfig
 
 The project includes [.editorconfig](.editorconfig) for consistent coding style across different editors. Most modern editors support EditorConfig automatically or via plugins.
-
-### Package Manager Enforcement
-
-The project includes multiple safeguards to ensure Bun is used:
-
-1. **engines field** in package.json rejects npm/yarn/pnpm
-2. **preinstall hook** runs `only-allow bun`
-3. **.npmrc** sets `engine-strict=true`
-4. **Lock files** for other package managers are gitignored
-
-If you accidentally try to use npm/yarn/pnpm, you'll see an error message directing you to use Bun.
 
 ## Best Practices
 
@@ -1353,6 +1408,20 @@ After:  Failed to connect to http://admin:[REDACTED]@localhost:8123
 
 The tool automatically creates a migrations tracking table (default: `_migrations`) to track applied migrations. You can customize the table name using the `--migration-table-name` option.
 
+**Cluster mode (default):**
+```sql
+CREATE TABLE _migrations (
+  uid UUID DEFAULT generateUUIDv4(),
+  version UInt32,
+  checksum String,
+  migration_name String,
+  applied_at DateTime DEFAULT now()
+)
+ENGINE = ReplicatedMergeTree
+ORDER BY tuple(applied_at);
+```
+
+**Standalone mode** (with `--table-engine=MergeTree`):
 ```sql
 CREATE TABLE _migrations (
   uid UUID DEFAULT generateUUIDv4(),
@@ -1390,7 +1459,7 @@ Contributions are welcome! We appreciate your help in making this project better
 
 1. Fork the repository
 2. Clone your fork: `git clone https://github.com/your-username/clickhouse-migrations.git`
-3. Install dependencies: `bun install`
+3. Install dependencies: `pnpm install`
 4. Create a branch: `git checkout -b feature/your-feature-name`
 
 ### Development Workflow
@@ -1399,9 +1468,9 @@ Contributions are welcome! We appreciate your help in making this project better
 2. **Add tests** for new features or bug fixes in the `tests/` directory
 3. **Run checks** to ensure code quality:
    ```sh
-   bun run check      # Format and lint
-   bun run test       # Run all tests
-   bun run build      # Verify build succeeds
+   pnpm run check      # Format and lint
+   pnpm run test       # Run all tests
+   pnpm run build      # Verify build succeeds
    ```
 4. **Commit your changes** with a clear commit message:
    ```sh
@@ -1431,8 +1500,8 @@ Examples:
 
 All contributions must:
 
-- Pass Biome linting and formatting checks (`bun run check`)
-- Pass all existing tests (`bun run test`)
+- Pass Biome linting and formatting checks (`pnpm run check`)
+- Pass all existing tests (`pnpm run test`)
 - Include tests for new functionality
 - Follow the existing code style (enforced by Biome)
 - Include appropriate error handling
@@ -1452,9 +1521,9 @@ We welcome contributions in these areas:
 
 ### Before Submitting
 
-- [ ] Tests pass: `bun run test`
-- [ ] Code is formatted: `bun run check`
-- [ ] Build succeeds: `bun run build`
+- [ ] Tests pass: `pnpm run test`
+- [ ] Code is formatted: `pnpm run check`
+- [ ] Build succeeds: `pnpm run build`
 - [ ] Documentation is updated (if needed)
 - [ ] Commit messages follow convention
 - [ ] PR description clearly explains the changes

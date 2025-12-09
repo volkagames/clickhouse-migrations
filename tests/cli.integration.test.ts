@@ -23,17 +23,15 @@ describe('Execution tests', () => {
 
     const result = await execute(command, { cwd: '.' })
 
-    expect(result.stderr).toBe(
-      '\x1B[36m clickhouse-migrations : \x1B[31m Error: No migration directory /app/clickhouse/migrations. Please create it. \n',
-    )
+    // Logger outputs JSON by default, check that error message is present
+    expect(result.stderr).toContain('No migration directory /app/clickhouse/migrations')
   })
 
   it('Environment variables are provided, but no migration directory', async () => {
     const result = await execute('node ./dist/cli.js migrate', { env: { ...process.env, ...envVars } })
 
-    expect(result.stderr).toBe(
-      '\x1B[36m clickhouse-migrations : \x1B[31m Error: No migration directory /app/clickhouse/migrations. Please create it. \n',
-    )
+    // Logger outputs JSON by default, check that error message is present
+    expect(result.stderr).toContain('No migration directory /app/clickhouse/migrations')
   })
 
   it('Incorrectly named migration', async () => {
@@ -42,8 +40,8 @@ describe('Execution tests', () => {
 
     const result = await execute(command, { cwd: '.' })
 
-    expect(result.stderr).toBe(
-      '\x1B[36m clickhouse-migrations : \x1B[31m Error: Migration name should start from a non-negative integer, example: 0_init.sql or 1_init.sql. Invalid migration: bad_1.sql \n',
-    )
+    // Logger outputs JSON by default, check that error message is present
+    expect(result.stderr).toContain('Migration name should start from a non-negative integer')
+    expect(result.stderr).toContain('bad_1.sql')
   })
 })
