@@ -1,5 +1,3 @@
-import { hostname } from 'node:os'
-
 // Log levels (lower = more verbose)
 export const levels = {
   fatal: 60,
@@ -44,7 +42,7 @@ export interface LoggerOptions {
   /** Key for the message field in JSON output (default: 'msg') */
   messageKey?: string
   /** Include timestamp (default: true) */
-  timestamp?: boolean | (() => string)
+  timestamp?: boolean | (() => string | undefined)
   /** Output format: 'json' for structured logs, 'pretty' for human-readable */
   format?: 'json' | 'pretty'
 }
@@ -74,7 +72,7 @@ class Logger implements ILogger {
   private _bindings: Record<string, unknown>
   private _base: Record<string, unknown>
   private _messageKey: string
-  private _timestamp: boolean | (() => string)
+  private _timestamp: boolean | (() => string | undefined)
   private _format: 'json' | 'pretty'
   private _name?: string
 
@@ -82,8 +80,8 @@ class Logger implements ILogger {
     this._level = options.level ?? 'info'
     this._levelValue = levels[this._level]
     this._bindings = bindings
-    this._base = options.base ?? { pid: process.pid, hostname: hostname() }
-    this._messageKey = options.messageKey ?? 'msg'
+    this._base = options.base ?? {}
+    this._messageKey = options.messageKey ?? 'message'
     this._timestamp = options.timestamp ?? true
     this._format = options.format ?? 'json'
     this._name = options.name
@@ -121,14 +119,14 @@ class Logger implements ILogger {
     return levels[level] >= this._levelValue
   }
 
-  private getTimestamp(): number | string | undefined {
+  private getTimestamp(): string | undefined {
     if (this._timestamp === false) {
       return undefined
     }
     if (typeof this._timestamp === 'function') {
       return this._timestamp()
     }
-    return Date.now()
+    return new Date().toISOString()
   }
 
   private log(level: Level, objOrMsg: Record<string, unknown> | string, msg?: string): void {
@@ -156,8 +154,8 @@ class Logger implements ILogger {
   private logJson(level: Level, mergeObj: Record<string, unknown>, message: string): void {
     const timestamp = this.getTimestamp()
     const logEntry: Record<string, unknown> = {
-      level: levels[level],
-      ...(timestamp !== undefined && { time: timestamp }),
+      severity: level.toUpperCase(),
+      ...(timestamp !== undefined && { timestamp }),
       ...this._base,
       ...(this._name && { name: this._name }),
       ...this._bindings,
@@ -228,7 +226,7 @@ class Logger implements ILogger {
  * // JSON logger (default)
  * const logger = createLogger()
  * logger.info('hello world')
- * // Output: {"level":30,"time":1234567890,"msg":"hello world"}
+ * // Output: {"severity":"INFO","timestamp":"2025-12-09T12:34:56.789Z","message":"hello world"}
  *
  * // With name and custom level
  * const logger = createLogger({ name: 'my-app', level: 'debug' })

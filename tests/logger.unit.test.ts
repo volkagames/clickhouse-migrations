@@ -26,11 +26,11 @@ describe('Logger Module', () => {
         const parsed = JSON.parse(output)
 
         expect(parsed).toMatchObject({
-          level: 30, // info level
-          msg: 'hello world',
+          severity: 'INFO',
+          message: 'hello world',
           name: 'test-app',
         })
-        expect(parsed.time).toBeDefined()
+        expect(parsed.timestamp).toBeDefined()
       })
 
       it('should use numeric log levels', () => {
@@ -50,10 +50,10 @@ describe('Logger Module', () => {
         const parsed = JSON.parse(output)
 
         expect(parsed).toMatchObject({
-          level: 30,
+          severity: 'INFO',
           userId: 123,
           action: 'login',
-          msg: 'user logged in',
+          message: 'user logged in',
         })
       })
 
@@ -85,9 +85,9 @@ describe('Logger Module', () => {
         const parsed = JSON.parse(output)
 
         expect(parsed).toMatchObject({
-          level: 30,
+          severity: 'INFO',
           requestId: 'abc-123',
-          msg: 'processing request',
+          message: 'processing request',
         })
       })
 
@@ -183,7 +183,7 @@ describe('Logger Module', () => {
 
         const output = consoleSpy.consoleLogSpy.mock.calls[0]?.[0]
         const parsed = JSON.parse(output)
-        expect(parsed.time).toBeDefined()
+        expect(parsed.timestamp).toBeDefined()
       })
 
       it('should allow disabling timestamp', () => {
@@ -192,7 +192,7 @@ describe('Logger Module', () => {
 
         const output = consoleSpy.consoleLogSpy.mock.calls[0]?.[0]
         const parsed = JSON.parse(output)
-        expect(parsed.time).toBeUndefined()
+        expect(parsed.timestamp).toBeUndefined()
       })
 
       it('should support custom timestamp function', () => {
@@ -201,7 +201,7 @@ describe('Logger Module', () => {
 
         const output = consoleSpy.consoleLogSpy.mock.calls[0]?.[0]
         const parsed = JSON.parse(output)
-        expect(parsed.time).toBe('custom-time')
+        expect(parsed.timestamp).toBe('custom-time')
       })
     })
 
@@ -212,8 +212,8 @@ describe('Logger Module', () => {
 
         const output = consoleSpy.consoleLogSpy.mock.calls[0]?.[0]
         const parsed = JSON.parse(output)
-        expect(parsed.level).toBe(30)
-        expect(parsed.msg).toBe('test message')
+        expect(parsed.severity).toBe('INFO')
+        expect(parsed.message).toBe('test message')
       })
 
       it('should use info as default minimum level', () => {
