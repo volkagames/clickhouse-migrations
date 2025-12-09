@@ -74,15 +74,15 @@
     "@rollup/plugin-json": "^6.1.0",
     "@rollup/plugin-node-resolve": "^16.0.3",
     "@rollup/plugin-typescript": "^12.3.0",
-    "@types/node": "^24.10.1",
-    "@vitest/coverage-v8": "4.0.13",
-    "@vitest/ui": "^4.0.14",
+    "@types/node": "^24.10.2",
+    "@vitest/coverage-v8": "4.0.15",
+    "@vitest/ui": "^4.0.15",
     "husky": "^9.1.7",
     "rollup": "^4.53.3",
     "rollup-plugin-preserve-shebang": "^1.0.1",
     "tslib": "^2.8.1",
     "typescript": "^5.9.3",
-    "vitest": "^4.0.14"
+    "vitest": "^4.0.15"
   },
   "files": [
     "dist/**/*"
