@@ -1,5 +1,21 @@
 # Changelog
 
+## [3.0.0](https://github.com/volkagames/clickhouse-migrations/compare/v2.3.2...v3.0.0) (2025-12-15)
+
+
+### ⚠ BREAKING CHANGES
+
+* Default configuration now targets production clusters
+    - Default table engine: ReplicatedMergeTree (was MergeTree)
+    - Default db engine: ON CLUSTER Replicated (was ENGINE=Atomic)
+    - Default log format: json (was console)
+
+### Features
+
+* bump version to 2.6.1 and update dependencies for better compatibility and performance ([6cba51a](https://github.com/volkagames/clickhouse-migrations/commit/6cba51aff1a6cfc788a3d9e4aaf5de1e085c0bb9))
+* migrate from bun to pnpm and add production-first defaults ([7404bbe](https://github.com/volkagames/clickhouse-migrations/commit/7404bbeab81f0ec05f4fe132534f3207e01f1184))
+* update logger output format for cloud logging compatibility ([e325686](https://github.com/volkagames/clickhouse-migrations/commit/e32568687a23f2970406a8db81d031d3a48a6f17))
+
 ## [2.3.2](https://github.com/volkagames/clickhouse-migrations/compare/v2.3.1...v2.3.2) (2025-11-28)
 
 
