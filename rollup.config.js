@@ -1,8 +1,8 @@
-import typescript from '@rollup/plugin-typescript';
-import resolve from '@rollup/plugin-node-resolve';
-import commonjs from '@rollup/plugin-commonjs';
-import json from '@rollup/plugin-json';
-import preserveShebang from 'rollup-plugin-preserve-shebang';
+import commonjs from '@rollup/plugin-commonjs'
+import json from '@rollup/plugin-json'
+import resolve from '@rollup/plugin-node-resolve'
+import typescript from '@rollup/plugin-typescript'
+import preserveShebang from 'rollup-plugin-preserve-shebang'
 
 export default [
   // Main library bundle - ESM format
@@ -57,7 +57,15 @@ export default [
       format: 'es',
       sourcemap: true,
     },
-    external: ['@clickhouse/client', 'commander', 'node:crypto', 'node:fs', 'node:fs/promises', 'node:path', 'node:url'],
+    external: [
+      '@clickhouse/client',
+      'commander',
+      'node:crypto',
+      'node:fs',
+      'node:fs/promises',
+      'node:path',
+      'node:url',
+    ],
     plugins: [
       json(),
       resolve(),
@@ -72,4 +80,4 @@ export default [
       preserveShebang(),
     ],
   },
-];
+]
