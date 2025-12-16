@@ -64,7 +64,7 @@ export const setupCli = (): Command => {
     .option('--user <name>', 'Username', process.env.CH_MIGRATIONS_USER)
     .option('--password <password>', 'Password', process.env.CH_MIGRATIONS_PASSWORD)
     .option('--db <name>', 'Database name', process.env.CH_MIGRATIONS_DB)
-    .requiredOption('--migrations-home <dir>', "Migrations' directory", process.env.CH_MIGRATIONS_HOME)
+    .option('--migrations-home <dir>', "Migrations' directory", process.env.CH_MIGRATIONS_HOME)
     .option(
       '--db-engine <value>',
       'Database engine with cluster config (default: "ON CLUSTER \'{cluster}\' ENGINE = Replicated(...)"). Use "ENGINE=Atomic" for standalone mode',
