@@ -7,7 +7,6 @@ node_modules
 # Lock files - only bun.lock is used
 package-lock.json
 yarn.lock
-pnpm-lock.yaml
 .pnpm-debug.log
 
 # TLS certificates and private keys (security)
