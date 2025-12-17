@@ -242,6 +242,7 @@ export const applyMigrations = async (
           `applied migration ${applied.migration_name} has different checksum than the file on filesystem. Continuing due to --abort-divergent=false.`,
         )
       }
+      logger.debug(`Skipped: ${migration.file} (already applied)`)
       continue
     }
 
@@ -260,10 +261,11 @@ export const applyMigrations = async (
 
     await recordMigration(client, migration, checksum, tableName)
     appliedList.push(migration.file)
+    logger.info(`Applied: ${migration.file}`)
   }
 
   if (appliedList.length > 0) {
-    logger.info(`The migration(s) ${appliedList.join(', ')} was successfully applied!`)
+    logger.info(`${appliedList.length} migration(s) successfully applied`)
   } else {
     logger.info('No migrations to apply.')
   }
