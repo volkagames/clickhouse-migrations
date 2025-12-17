@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.6.5](https://github.com/volkagames/clickhouse-migrations/compare/v2.6.4...v2.6.5) (2025-12-17)
+
+
+### Bug Fixes
+
+* **ci:** add NPM_TOKEN for npm publish authentication ([534c24e](https://github.com/volkagames/clickhouse-migrations/commit/534c24e8a1d39b51d537e151d635566799e4c838))
+
 ## [2.6.4](https://github.com/volkagames/clickhouse-migrations/compare/v2.6.3...v2.6.4) (2025-12-17)
 
 
