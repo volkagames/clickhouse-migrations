@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.6.4](https://github.com/volkagames/clickhouse-migrations/compare/v2.6.3...v2.6.4) (2025-12-17)
+
+
+### Bug Fixes
+
+* remove pnpm-lock.yaml from the ignore list to ensure consistency in dependency management ([991469d](https://github.com/volkagames/clickhouse-migrations/commit/991469de41b4293dca0ed768e31efe53b72cce56))
+
+
+### Miscellaneous Chores
+
+* **main:** release 2.6.4 ([1f3dc10](https://github.com/volkagames/clickhouse-migrations/commit/1f3dc10ae495cff939273de4e6aae129e3e7d054))
+
 ## [2.6.3](https://github.com/volkagames/clickhouse-migrations/compare/v2.3.2...v2.6.3) (2025-12-17)
 
 
