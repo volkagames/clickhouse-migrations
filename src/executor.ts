@@ -146,7 +146,7 @@ export const executeMigrationQueries = async (
 ): Promise<void> => {
   for (const query of queries) {
     try {
-      await client.exec({
+      await client.command({
         query,
         clickhouse_settings: settings,
       })

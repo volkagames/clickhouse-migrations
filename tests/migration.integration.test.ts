@@ -5,7 +5,7 @@ import { runMigration } from '../src/migrate'
 import { createMockClickHouseClient } from './helpers/mockClickHouseClient'
 import { cleanupTest, setupIntegrationTest } from './helpers/testSetup'
 
-const { mockClient, mockQuery, mockExec, mockInsert, mockClose } = createMockClickHouseClient()
+const { mockClient, mockQuery, mockExec, mockCommand, mockInsert, mockClose } = createMockClickHouseClient()
 
 vi.mock('@clickhouse/client', () => ({
   createClient: vi.fn(() => mockClient),
@@ -16,6 +16,7 @@ describe('Migration tests', () => {
     setupIntegrationTest({
       mockQuery,
       mockExec,
+      mockCommand,
       mockInsert,
       mockClose,
       mockClient: undefined,
@@ -30,6 +31,7 @@ describe('Migration tests', () => {
   it('First migration (standalone mode)', async () => {
     const querySpy = vi.spyOn(mockClient, 'query')
     const execSpy = vi.spyOn(mockClient, 'exec')
+    const commandSpy = vi.spyOn(mockClient, 'command')
     const insertSpy = vi.spyOn(mockClient, 'insert')
 
     const logger = createLogger()
@@ -46,7 +48,8 @@ describe('Migration tests', () => {
       logger,
     })
 
-    expect(execSpy).toHaveBeenCalledTimes(3)
+    expect(execSpy).toHaveBeenCalledTimes(2)
+    expect(commandSpy).toHaveBeenCalledTimes(1)
     expect(querySpy).toHaveBeenCalledTimes(1)
     expect(insertSpy).toHaveBeenCalledTimes(1)
 
@@ -73,7 +76,7 @@ describe('Migration tests', () => {
         wait_end_of_query: 1,
       },
     })
-    expect(execSpy).toHaveBeenNthCalledWith(3, {
+    expect(commandSpy).toHaveBeenNthCalledWith(1, {
       clickhouse_settings: { allow_experimental_json_type: '1' },
       query:
         'CREATE TABLE IF NOT EXISTS `events` ( `event_id` UInt64, `event_data` JSON ) ENGINE=MergeTree() ORDER BY (`event_id`) SETTINGS index_granularity = 8192',
@@ -94,6 +97,7 @@ describe('Migration tests', () => {
   it('Migration with custom table name', async () => {
     const querySpy = vi.spyOn(mockClient, 'query')
     const execSpy = vi.spyOn(mockClient, 'exec')
+    const commandSpy = vi.spyOn(mockClient, 'command')
     const insertSpy = vi.spyOn(mockClient, 'insert')
 
     const logger = createLogger()
@@ -111,7 +115,8 @@ describe('Migration tests', () => {
       logger,
     })
 
-    expect(execSpy).toHaveBeenCalledTimes(3)
+    expect(execSpy).toHaveBeenCalledTimes(2)
+    expect(commandSpy).toHaveBeenCalledTimes(1)
     expect(querySpy).toHaveBeenCalledTimes(1)
     expect(insertSpy).toHaveBeenCalledTimes(1)
 
