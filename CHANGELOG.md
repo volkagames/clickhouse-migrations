@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.6.5](https://github.com/volkagames/clickhouse-migrations/compare/v2.6.4...v2.6.5) (2026-07-15)
+
+
+### Bug Fixes
+
+* **ci:** add NPM_TOKEN for npm publish authentication ([534c24e](https://github.com/volkagames/clickhouse-migrations/commit/534c24e8a1d39b51d537e151d635566799e4c838))
+* **executor:** use command instead of exec for DDL to drain response streams ([8a5eaa2](https://github.com/volkagames/clickhouse-migrations/commit/8a5eaa2abbde409b2ed6ab2262d4f9bba3991835))
+
 ## [2.6.4](https://github.com/volkagames/clickhouse-migrations/compare/v2.6.3...v2.6.4) (2025-12-17)
 
 
