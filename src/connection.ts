@@ -134,7 +134,7 @@ export const createDb = async (config: CreateDbConfig): Promise<void> => {
   const query = config.dbEngine ? `${baseQuery} ${config.dbEngine}` : baseQuery
 
   try {
-    await client.exec({
+    await client.command({
       query,
       query_params: { name: config.dbName },
       clickhouse_settings: { wait_end_of_query: 1 },
@@ -174,7 +174,7 @@ export const initMigrationTable = async (
     ORDER BY tuple(applied_at)`
 
   try {
-    await client.exec({
+    await client.command({
       query,
       clickhouse_settings: { wait_end_of_query: 1 },
     })

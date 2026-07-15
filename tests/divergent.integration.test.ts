@@ -5,7 +5,7 @@ import { runMigration } from '../src/migrate'
 import { createMockClickHouseClient } from './helpers/mockClickHouseClient'
 import { cleanupTest, setupConsoleSpy, setupIntegrationTest } from './helpers/testSetup'
 
-const { mockClient, mockQuery, mockExec, mockInsert, mockClose, mockPing } = createMockClickHouseClient()
+const { mockClient, mockQuery, mockCommand, mockInsert, mockClose, mockPing } = createMockClickHouseClient()
 
 vi.mock('@clickhouse/client', () => ({
   createClient: vi.fn(() => mockClient),
@@ -17,7 +17,7 @@ describe('Divergent migration tests with abort_divergent flag', () => {
   beforeEach(() => {
     setupIntegrationTest({
       mockQuery,
-      mockExec,
+      mockCommand,
       mockInsert,
       mockClose,
       mockClient: undefined,
@@ -87,7 +87,11 @@ describe('Divergent migration tests with abort_divergent flag', () => {
       }
       try {
         const parsed = JSON.parse(output)
-        return parsed.level === 40 && parsed.msg?.includes('different checksum') && parsed.msg?.includes('1_init.sql')
+        return (
+          parsed.severity === 'WARN' &&
+          parsed.message?.includes('different checksum') &&
+          parsed.message?.includes('1_init.sql')
+        )
       } catch {
         return false
       }
@@ -102,7 +106,7 @@ describe('Divergent migration tests with abort_divergent flag', () => {
       }
       try {
         const parsed = JSON.parse(output)
-        return parsed.level === 30 && parsed.msg === 'No migrations to apply.'
+        return parsed.severity === 'INFO' && parsed.message === 'No migrations to apply.'
       } catch {
         return false
       }

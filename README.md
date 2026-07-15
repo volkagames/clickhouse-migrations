@@ -898,6 +898,51 @@ clickhouse-migrations/
 └── biome.json        # Biome configuration
 ```
 
+### Executing DDL: `command` vs `exec`
+
+All migration and schema statements (`CREATE DATABASE`, the `_migrations` tracking
+table, and the DDL inside migration files) are sent through the ClickHouse client's
+`command()` method, not `exec()`.
+
+The two differ in how they treat the server's response stream:
+
+| | `command()` | `exec()` |
+| --- | --- | --- |
+| Intended for | DDL / statements with no useful output | queries whose response stream you consume |
+| Response stream | destroyed immediately by the client | returned to the caller, **must** be consumed |
+| If the stream is ignored | nothing to do — already drained | stays open until GC/socket timeout |
+
+Because migrations are DDL with no output we need, `exec()` left an unconsumed
+response stream on every statement. For small statements the socket usually drained
+before reuse, but larger responses (e.g. a `CREATE MATERIALIZED VIEW ... POPULATE`
+bound to a populated table) kept the stream open long enough to trigger a
+`socket hang up` warning and a potential `ECONNRESET` on the next request. `command()`
+drains the stream as soon as the response arrives, which is exactly what DDL needs.
+See [#15](https://github.com/volkagames/clickhouse-migrations/issues/15).
+
+#### Why `exec()` gains us nothing here
+
+`exec()` is only worth its extra complexity when you need one of two things, and this
+tool needs neither:
+
+- **Reading the response stream.** Migrations run `CREATE`, `ALTER`, `INSERT ... SELECT`,
+  mutations, etc. — statements whose result we never read. `exec()` hands back a live
+  stream to consume; we would just throw it away (and leaking it is what caused #15).
+- **Passing an input `values` stream.** `exec()` can stream data into a custom `INSERT`
+  via its `values` parameter. Migration files are plain SQL text read from `.sql` files —
+  any data lives inside the statement itself (`INSERT ... VALUES`, `INSERT ... SELECT`),
+  so there is no separate stream to send. We call `command({ query, clickhouse_settings })`
+  with no `values`, exactly as `exec()` was called before.
+
+Since we neither read the response nor send a `values` stream, `command()` sends the
+identical HTTP request and simply manages the response stream for us. Data migrations
+(`INSERT`, `INSERT ... SELECT`, `ALTER ... UPDATE`) behave the same as before. If you
+ever need to stream a large dataset in — rather than embedding it in SQL — use the
+client's `insert()` method, not a migration statement.
+
+This is purely an internal choice — it does not change SQL, settings, or behavior
+observed by CLI users.
+
 ### Available Scripts
 
 #### Build

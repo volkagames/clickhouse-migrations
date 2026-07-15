@@ -32,6 +32,7 @@ export function createMockClickHouseClient() {
     Promise.resolve({ json: () => Promise.resolve([]) as Promise<Array<Record<string, unknown>>> }),
   )
   const mockExec = vi.fn(() => Promise.resolve({}))
+  const mockCommand = vi.fn(() => Promise.resolve({}))
   const mockInsert = vi.fn(() => Promise.resolve({}))
   const mockClose = vi.fn(() => Promise.resolve())
   const mockPing = vi.fn(() => Promise.resolve())
@@ -39,6 +40,7 @@ export function createMockClickHouseClient() {
   const mockClient = {
     query: mockQuery,
     exec: mockExec,
+    command: mockCommand,
     insert: mockInsert,
     close: mockClose,
     ping: mockPing,
@@ -48,6 +50,7 @@ export function createMockClickHouseClient() {
     mockClient,
     mockQuery,
     mockExec,
+    mockCommand,
     mockInsert,
     mockClose,
     mockPing,

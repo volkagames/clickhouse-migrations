@@ -5,7 +5,7 @@ import { runMigration } from '../src/migrate'
 import { createMockClickHouseClient } from './helpers/mockClickHouseClient'
 import { cleanupTest, setupIntegrationTest } from './helpers/testSetup'
 
-const { mockClient, mockQuery, mockExec, mockInsert, mockClose } = createMockClickHouseClient()
+const { mockClient, mockQuery, mockCommand, mockInsert, mockClose } = createMockClickHouseClient()
 
 vi.mock('@clickhouse/client', () => ({
   createClient: vi.fn(() => mockClient),
@@ -15,7 +15,7 @@ describe('Table engine configuration tests', () => {
   beforeEach(() => {
     setupIntegrationTest({
       mockQuery,
-      mockExec,
+      mockCommand,
       mockInsert,
       mockClose,
       mockClient: undefined,
@@ -28,7 +28,7 @@ describe('Table engine configuration tests', () => {
   })
 
   it('Should create _migrations table with default ReplicatedMergeTree engine', async () => {
-    const execSpy = vi.spyOn(mockClient, 'exec')
+    const commandSpy = vi.spyOn(mockClient, 'command')
 
     const logger = createLogger()
     await runMigration({
@@ -43,7 +43,7 @@ describe('Table engine configuration tests', () => {
     })
 
     // Check that _migrations table was created with default ReplicatedMergeTree engine
-    expect(execSpy).toHaveBeenNthCalledWith(2, {
+    expect(commandSpy).toHaveBeenNthCalledWith(2, {
       query: `CREATE TABLE IF NOT EXISTS _migrations (
       uid UUID DEFAULT generateUUIDv4(),
       version UInt32,
@@ -60,7 +60,7 @@ describe('Table engine configuration tests', () => {
   })
 
   it('Should create _migrations table with standalone MergeTree engine', async () => {
-    const execSpy = vi.spyOn(mockClient, 'exec')
+    const commandSpy = vi.spyOn(mockClient, 'command')
 
     const logger = createLogger()
     await runMigration({
@@ -76,7 +76,7 @@ describe('Table engine configuration tests', () => {
     })
 
     // Check that _migrations table was created with MergeTree engine
-    expect(execSpy).toHaveBeenNthCalledWith(2, {
+    expect(commandSpy).toHaveBeenNthCalledWith(2, {
       query: `CREATE TABLE IF NOT EXISTS _migrations (
       uid UUID DEFAULT generateUUIDv4(),
       version UInt32,
@@ -93,7 +93,7 @@ describe('Table engine configuration tests', () => {
   })
 
   it('Should create _migrations table with custom ReplicatedMergeTree engine', async () => {
-    const execSpy = vi.spyOn(mockClient, 'exec')
+    const commandSpy = vi.spyOn(mockClient, 'command')
 
     const customEngine = "ReplicatedMergeTree('/clickhouse/tables/{database}/migrations', '{replica}')"
 
@@ -111,7 +111,7 @@ describe('Table engine configuration tests', () => {
     })
 
     // Check that _migrations table was created with custom engine
-    expect(execSpy).toHaveBeenNthCalledWith(2, {
+    expect(commandSpy).toHaveBeenNthCalledWith(2, {
       query: `CREATE TABLE IF NOT EXISTS _migrations (
       uid UUID DEFAULT generateUUIDv4(),
       version UInt32,
@@ -128,7 +128,7 @@ describe('Table engine configuration tests', () => {
   })
 
   it('Should create _migrations table with SharedMergeTree engine for cloud', async () => {
-    const execSpy = vi.spyOn(mockClient, 'exec')
+    const commandSpy = vi.spyOn(mockClient, 'command')
 
     const cloudEngine = 'SharedMergeTree'
 
@@ -146,7 +146,7 @@ describe('Table engine configuration tests', () => {
     })
 
     // Check that _migrations table was created with SharedMergeTree
-    expect(execSpy).toHaveBeenNthCalledWith(2, {
+    expect(commandSpy).toHaveBeenNthCalledWith(2, {
       query: `CREATE TABLE IF NOT EXISTS _migrations (
       uid UUID DEFAULT generateUUIDv4(),
       version UInt32,
@@ -163,7 +163,7 @@ describe('Table engine configuration tests', () => {
   })
 
   it('Should create custom named table with custom engine', async () => {
-    const execSpy = vi.spyOn(mockClient, 'exec')
+    const commandSpy = vi.spyOn(mockClient, 'command')
     const insertSpy = vi.spyOn(mockClient, 'insert')
 
     const customTableName = 'my_custom_migrations'
@@ -184,7 +184,7 @@ describe('Table engine configuration tests', () => {
     })
 
     // Check that custom named table was created with custom engine
-    expect(execSpy).toHaveBeenNthCalledWith(2, {
+    expect(commandSpy).toHaveBeenNthCalledWith(2, {
       query: `CREATE TABLE IF NOT EXISTS ${customTableName} (
       uid UUID DEFAULT generateUUIDv4(),
       version UInt32,

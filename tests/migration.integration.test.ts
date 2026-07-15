@@ -5,7 +5,7 @@ import { runMigration } from '../src/migrate'
 import { createMockClickHouseClient } from './helpers/mockClickHouseClient'
 import { cleanupTest, setupIntegrationTest } from './helpers/testSetup'
 
-const { mockClient, mockQuery, mockExec, mockInsert, mockClose } = createMockClickHouseClient()
+const { mockClient, mockQuery, mockCommand, mockInsert, mockClose } = createMockClickHouseClient()
 
 vi.mock('@clickhouse/client', () => ({
   createClient: vi.fn(() => mockClient),
@@ -15,7 +15,7 @@ describe('Migration tests', () => {
   beforeEach(() => {
     setupIntegrationTest({
       mockQuery,
-      mockExec,
+      mockCommand,
       mockInsert,
       mockClose,
       mockClient: undefined,
@@ -29,7 +29,7 @@ describe('Migration tests', () => {
 
   it('First migration (standalone mode)', async () => {
     const querySpy = vi.spyOn(mockClient, 'query')
-    const execSpy = vi.spyOn(mockClient, 'exec')
+    const commandSpy = vi.spyOn(mockClient, 'command')
     const insertSpy = vi.spyOn(mockClient, 'insert')
 
     const logger = createLogger()
@@ -46,11 +46,11 @@ describe('Migration tests', () => {
       logger,
     })
 
-    expect(execSpy).toHaveBeenCalledTimes(3)
+    expect(commandSpy).toHaveBeenCalledTimes(3)
     expect(querySpy).toHaveBeenCalledTimes(1)
     expect(insertSpy).toHaveBeenCalledTimes(1)
 
-    expect(execSpy).toHaveBeenNthCalledWith(1, {
+    expect(commandSpy).toHaveBeenNthCalledWith(1, {
       query: 'CREATE DATABASE IF NOT EXISTS {name:Identifier} ENGINE=Atomic',
       query_params: {
         name: 'analytics',
@@ -59,7 +59,7 @@ describe('Migration tests', () => {
         wait_end_of_query: 1,
       },
     })
-    expect(execSpy).toHaveBeenNthCalledWith(2, {
+    expect(commandSpy).toHaveBeenNthCalledWith(2, {
       query: `CREATE TABLE IF NOT EXISTS _migrations (
       uid UUID DEFAULT generateUUIDv4(),
       version UInt32,
@@ -73,8 +73,8 @@ describe('Migration tests', () => {
         wait_end_of_query: 1,
       },
     })
-    expect(execSpy).toHaveBeenNthCalledWith(3, {
-      clickhouse_settings: { allow_experimental_json_type: '1' },
+    expect(commandSpy).toHaveBeenNthCalledWith(3, {
+      clickhouse_settings: { allow_experimental_json_type: '1', wait_end_of_query: 1 },
       query:
         'CREATE TABLE IF NOT EXISTS `events` ( `event_id` UInt64, `event_data` JSON ) ENGINE=MergeTree() ORDER BY (`event_id`) SETTINGS index_granularity = 8192',
     })
@@ -93,7 +93,7 @@ describe('Migration tests', () => {
 
   it('Migration with custom table name', async () => {
     const querySpy = vi.spyOn(mockClient, 'query')
-    const execSpy = vi.spyOn(mockClient, 'exec')
+    const commandSpy = vi.spyOn(mockClient, 'command')
     const insertSpy = vi.spyOn(mockClient, 'insert')
 
     const logger = createLogger()
@@ -111,12 +111,12 @@ describe('Migration tests', () => {
       logger,
     })
 
-    expect(execSpy).toHaveBeenCalledTimes(3)
+    expect(commandSpy).toHaveBeenCalledTimes(3)
     expect(querySpy).toHaveBeenCalledTimes(1)
     expect(insertSpy).toHaveBeenCalledTimes(1)
 
     // Verify custom table name is used in CREATE TABLE
-    expect(execSpy).toHaveBeenNthCalledWith(2, {
+    expect(commandSpy).toHaveBeenNthCalledWith(2, {
       query: `CREATE TABLE IF NOT EXISTS my_custom_migrations (
       uid UUID DEFAULT generateUUIDv4(),
       version UInt32,

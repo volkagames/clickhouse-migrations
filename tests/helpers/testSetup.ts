@@ -7,6 +7,7 @@ import type { MockClickHouseClient } from './mockClickHouseClient'
 export function resetClickHouseMocks(mockClient: MockClickHouseClient) {
   mockClient.mockQuery?.mockResolvedValue({ json: vi.fn().mockResolvedValue([]) })
   mockClient.mockExec?.mockResolvedValue({})
+  mockClient.mockCommand?.mockResolvedValue({})
   mockClient.mockInsert?.mockResolvedValue({})
   mockClient.mockClose?.mockResolvedValue(undefined)
 }
